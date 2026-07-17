@@ -1,0 +1,314 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════════
+   DESIGN TOKENS — CSS Custom Properties
+   ═══════════════════════════════════════════════════════════ */
+@layer base {
+  :root {
+    /* Radius */
+    --radius: 0.625rem;
+
+    /* shadcn/ui semantic tokens (light / cork mode) */
+    --background:       40 33% 97%;
+    --foreground:       30 15% 15%;
+    --card:             0 0% 100%;
+    --card-foreground:  30 15% 15%;
+    --popover:          0 0% 100%;
+    --popover-foreground: 30 15% 15%;
+    --primary:          32 72% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary:        36 30% 90%;
+    --secondary-foreground: 30 15% 30%;
+    --muted:            36 20% 94%;
+    --muted-foreground: 30 10% 50%;
+    --accent:           36 60% 88%;
+    --accent-foreground: 30 15% 20%;
+    --destructive:      0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border:           36 20% 85%;
+    --input:            36 20% 85%;
+    --ring:             32 72% 52%;
+
+    /* Board-specific tokens */
+    --board-bg:         43 60% 94%;
+    --board-surface:    43 40% 92%;
+    --sidebar-bg:       26 30% 11%;
+    --sidebar-text:     36 30% 85%;
+    --sidebar-text-muted: 30 15% 55%;
+    --sidebar-accent:   32 72% 52%;
+    --topbar-bg:        40 33% 97%;
+    --topbar-border:    36 20% 88%;
+  }
+
+  /* ─── Board Themes ─────────────────────────────────────── */
+  [data-theme="cork"] {
+    --board-bg:       38 52% 88%;
+    --board-surface:  36 40% 84%;
+  }
+
+  [data-theme="linen"] {
+    --board-bg:       38 30% 92%;
+    --board-surface:  36 24% 89%;
+  }
+
+  [data-theme="gradient"] {
+    --board-bg:       280 40% 97%;
+    --board-surface:  220 30% 96%;
+  }
+
+  [data-theme="dark"] {
+    --board-bg:       220 12% 14%;
+    --board-surface:  220 10% 18%;
+    --foreground:     36 20% 92%;
+    --card:           220 10% 20%;
+    --card-foreground: 36 20% 92%;
+    --border:         220 10% 28%;
+    --muted:          220 10% 22%;
+    --muted-foreground: 220 8% 55%;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BASE STYLES
+   ═══════════════════════════════════════════════════════════ */
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-semibold tracking-tight;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-sand-300 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-sand-400;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COMPONENT UTILITIES
+   ═══════════════════════════════════════════════════════════ */
+@layer components {
+
+  /* ─── Sticky Note ─────────────────────────────────────── */
+  .sticky-note {
+    @apply relative rounded-sticky shadow-sticky transition-shadow duration-200;
+    background-color: var(--note-color, #FFF3B0);
+  }
+
+  .sticky-note::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(255,255,255,0.35) 0%,
+      transparent 50%
+    );
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  .sticky-note:hover {
+    @apply shadow-sticky-hover;
+  }
+
+  .sticky-note--rotate-1 { transform: rotate(-2.5deg); }
+  .sticky-note--rotate-2 { transform: rotate(1.8deg); }
+  .sticky-note--rotate-3 { transform: rotate(-1.2deg); }
+  .sticky-note--rotate-4 { transform: rotate(2.8deg); }
+  .sticky-note--rotate-5 { transform: rotate(-0.8deg); }
+
+  /* ─── Pin decoration ──────────────────────────────────── */
+  .pin {
+    @apply absolute -top-3 left-1/2 -translate-x-1/2 z-10;
+    @apply w-5 h-5 rounded-full shadow-pin;
+    @apply flex items-center justify-center;
+    background: radial-gradient(circle at 35% 35%, #e85d5d, #a02020);
+  }
+
+  .pin::after {
+    content: '';
+    @apply absolute w-1.5 h-5 rounded-full;
+    background: linear-gradient(to bottom, #8b0000, #c0392b);
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+  }
+
+  /* ─── Board Canvas ────────────────────────────────────── */
+  .board-canvas {
+    @apply relative w-full min-h-screen overflow-hidden;
+    background-color: hsl(var(--board-bg));
+  }
+
+  .board-canvas--cork {
+    background-color: #c8894a;
+    background-image:
+      radial-gradient(ellipse at 20% 30%, rgba(139,90,43,0.4) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 70%, rgba(160,110,60,0.3) 0%, transparent 50%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Ccircle cx='2' cy='2' r='1' fill='%23a07040' fill-opacity='0.2'/%3E%3Ccircle cx='6' cy='6' r='.7' fill='%23805030' fill-opacity='0.15'/%3E%3Ccircle cx='2' cy='6' r='.5' fill='%23c09050' fill-opacity='0.12'/%3E%3C/svg%3E");
+  }
+
+  .board-canvas--linen {
+    background-color: #f0e8d8;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 24px, rgba(180,160,120,0.06) 24px, rgba(180,160,120,0.06) 25px),
+      repeating-linear-gradient(90deg, transparent, transparent 24px, rgba(180,160,120,0.06) 24px, rgba(180,160,120,0.06) 25px);
+  }
+
+  .board-canvas--gradient {
+    background: linear-gradient(135deg, #fdf4ff 0%, #fce7f3 20%, #eff6ff 45%, #f0fdf4 70%, #fefce8 100%);
+  }
+
+  .board-canvas--dark {
+    background-color: #1a1c23;
+    background-image: radial-gradient(ellipse at 30% 20%, rgba(80,40,120,0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 80%, rgba(40,80,120,0.1) 0%, transparent 50%);
+  }
+
+  /* ─── Glass Card ──────────────────────────────────────── */
+  .glass-card {
+    @apply rounded-xl border border-white/40 shadow-glass;
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .glass-card--dark {
+    background: rgba(30, 30, 40, 0.75);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  /* ─── Sidebar ─────────────────────────────────────────── */
+  .sidebar {
+    @apply fixed left-0 top-0 h-screen z-40 flex flex-col;
+    @apply shadow-sidebar transition-all duration-300;
+    background: linear-gradient(180deg, #1a1512 0%, #231c15 50%, #1e1810 100%);
+    width: 260px;
+  }
+
+  .sidebar--collapsed {
+    width: 64px;
+  }
+
+  .sidebar-nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg;
+    @apply text-sm font-medium transition-all duration-200 cursor-pointer;
+    @apply text-stone-400 hover:text-white;
+  }
+
+  .sidebar-nav-item:hover {
+    background: rgba(255,255,255,0.08);
+  }
+
+  .sidebar-nav-item--active {
+    @apply text-white;
+    background: linear-gradient(135deg, rgba(217,144,46,0.25) 0%, rgba(217,144,46,0.12) 100%);
+    border: 1px solid rgba(217,144,46,0.3);
+  }
+
+  .sidebar-nav-item--active .nav-icon {
+    @apply text-cork-400;
+  }
+
+  /* ─── Featured Strip ──────────────────────────────────── */
+  .featured-strip {
+    @apply flex gap-4 overflow-x-auto pb-2;
+    scrollbar-width: none;
+  }
+
+  .featured-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ─── Category Tag ────────────────────────────────────── */
+  .category-tag {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full;
+    @apply text-xs font-medium;
+  }
+
+  /* ─── Priority indicators ─────────────────────────────── */
+  .priority-high   { @apply text-rose-600; }
+  .priority-medium { @apply text-amber-500; }
+  .priority-low    { @apply text-emerald-500; }
+
+  /* ─── Skeleton loader ─────────────────────────────────── */
+  .skeleton {
+    @apply rounded-md animate-pulse;
+    background: linear-gradient(90deg,
+      hsl(var(--muted)) 25%,
+      hsl(var(--accent)) 50%,
+      hsl(var(--muted)) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s infinite;
+  }
+
+  /* ─── Gradient text ───────────────────────────────────── */
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #d9902e, #e4a94a, #c07423);
+  }
+
+  /* ─── Focus ring ──────────────────────────────────────── */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cork-500 focus-visible:ring-offset-2;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   UTILITIES
+   ═══════════════════════════════════════════════════════════ */
+@layer utilities {
+  /* Staggered animation delays */
+  .delay-75  { animation-delay: 75ms; }
+  .delay-150 { animation-delay: 150ms; }
+  .delay-300 { animation-delay: 300ms; }
+  .delay-500 { animation-delay: 500ms; }
+  .delay-700 { animation-delay: 700ms; }
+  .delay-1000{ animation-delay: 1000ms; }
+
+  /* Hide scrollbar utility */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Dragging cursor */
+  .cursor-grab   { cursor: grab; }
+  .cursor-grab:active { cursor: grabbing; }
+
+  /* Content area offset for sidebar */
+  .content-offset { margin-left: 260px; }
+  .content-offset-collapsed { margin-left: 64px; }
+}
