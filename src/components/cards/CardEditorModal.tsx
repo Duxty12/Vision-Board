@@ -269,6 +269,7 @@ export function CardEditorModal({
               card_id: cardId,
               title: sub.title.trim() || 'Subtask',
               position: i,
+              is_completed: sub.is_completed,
             });
           } else if (sub.id) {
             const orig = originalSubtasksRef.current.find((o) => o.id === sub.id);

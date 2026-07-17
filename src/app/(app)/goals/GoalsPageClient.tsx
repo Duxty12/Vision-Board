@@ -6,6 +6,7 @@ import { Target, Plus, Star, CheckCircle2, Tag, SlidersHorizontal, TrendingUp } 
 import type { CardWithRelations } from '@/lib/types';
 import { CardCompactView } from '@/components/cards/CardCompactView';
 import { CardEditorModal } from '@/components/cards/CardEditorModal';
+import { CardExpandedView } from '@/components/cards/CardExpandedView';
 import { toggleCardCompleted, toggleCardStarred } from '@/lib/actions/cards';
 
 interface GoalsPageClientProps {
@@ -28,6 +29,7 @@ export function GoalsPageClient({ initialCards }: GoalsPageClientProps) {
   // Editor Modal State
   const [selectedCard, setSelectedCard] = useState<CardWithRelations | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isExpandedOpen, setIsExpandedOpen] = useState(false);
 
   // Progress Calculations
   const completedCount = initialCards.filter((c) => c.is_completed).length;
@@ -282,7 +284,7 @@ export function GoalsPageClient({ initialCards }: GoalsPageClientProps) {
             card={card}
             onClick={() => {
               setSelectedCard(card);
-              setIsEditorOpen(true);
+              setIsExpandedOpen(true);
             }}
             onToggleCompleted={handleToggleCompleted}
             onToggleStarred={handleToggleStarred}
@@ -309,6 +311,21 @@ export function GoalsPageClient({ initialCards }: GoalsPageClientProps) {
           <span className="text-xs font-semibold font-sans">Add Goal</span>
         </button>
       </div>
+
+      {/* ── Expanded Card View ── */}
+      {selectedCard && (
+        <CardExpandedView
+          card={initialCards.find((c) => c.id === selectedCard.id) || selectedCard}
+          isOpen={isExpandedOpen}
+          onClose={() => setIsExpandedOpen(false)}
+          onEdit={() => {
+            setIsExpandedOpen(false);
+            setIsEditorOpen(true);
+          }}
+          onToggleCompleted={handleToggleCompleted}
+          onToggleStarred={handleToggleStarred}
+        />
+      )}
 
       {/* ── Editor Modal ── */}
       <CardEditorModal

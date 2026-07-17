@@ -151,7 +151,7 @@ export type CreateBoardInput = Pick<Board, 'title' | 'theme'>;
 
 export type UpdateBoardInput = Partial<Pick<Board, 'title' | 'theme' | 'is_starred' | 'is_default'>>;
 
-export type CreateSubtaskInput = Pick<Subtask, 'card_id' | 'title' | 'position'>;
+export type CreateSubtaskInput = Pick<Subtask, 'card_id' | 'title' | 'position' | 'is_completed'>;
 
 export type CreateStickerInput = Pick<
   Sticker,

@@ -6,7 +6,9 @@ import { CheckSquare, Plus, Star, CheckCircle2, Flag, RotateCcw, Calendar, Slide
 import type { CardWithRelations, Priority } from '@/lib/types';
 import { CardCompactView } from '@/components/cards/CardCompactView';
 import { CardEditorModal } from '@/components/cards/CardEditorModal';
+import { CardExpandedView } from '@/components/cards/CardExpandedView';
 import { toggleCardCompleted, toggleCardStarred } from '@/lib/actions/cards';
+import { toggleSubtaskCompleted } from '@/lib/actions/subtasks';
 
 interface TasksPageClientProps {
   initialCards: CardWithRelations[];
@@ -28,6 +30,7 @@ export function TasksPageClient({ initialCards }: TasksPageClientProps) {
   // Editor Modal State
   const [selectedCard, setSelectedCard] = useState<CardWithRelations | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isExpandedOpen, setIsExpandedOpen] = useState(false);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -117,6 +120,17 @@ export function TasksPageClient({ initialCards }: TasksPageClientProps) {
         router.refresh();
       } catch (err) {
         console.error('Failed to toggle card star:', err);
+      }
+    });
+  };
+
+  const handleToggleSubtask = async (subtaskId: string) => {
+    startTransition(async () => {
+      try {
+        await toggleSubtaskCompleted(subtaskId);
+        router.refresh();
+      } catch (err) {
+        console.error('Failed to toggle subtask:', err);
       }
     });
   };
@@ -361,7 +375,7 @@ export function TasksPageClient({ initialCards }: TasksPageClientProps) {
             card={card}
             onClick={() => {
               setSelectedCard(card);
-              setIsEditorOpen(true);
+              setIsExpandedOpen(true);
             }}
             onToggleCompleted={handleToggleCompleted}
             onToggleStarred={handleToggleStarred}
@@ -388,6 +402,22 @@ export function TasksPageClient({ initialCards }: TasksPageClientProps) {
           <span className="text-xs font-semibold font-sans">Add Task</span>
         </button>
       </div>
+
+      {/* ── Expanded Card View ── */}
+      {selectedCard && (
+        <CardExpandedView
+          card={initialCards.find((c) => c.id === selectedCard.id) || selectedCard}
+          isOpen={isExpandedOpen}
+          onClose={() => setIsExpandedOpen(false)}
+          onEdit={() => {
+            setIsExpandedOpen(false);
+            setIsEditorOpen(true);
+          }}
+          onToggleCompleted={handleToggleCompleted}
+          onToggleStarred={handleToggleStarred}
+          onToggleSubtask={handleToggleSubtask}
+        />
+      )}
 
       {/* ── Editor Modal ── */}
       <CardEditorModal

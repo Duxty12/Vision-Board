@@ -219,6 +219,13 @@ export function CardCompactView({
                     alt="Attachment"
                     className="w-full h-full object-cover"
                   />
+                  {/* Badge if video is also attached */}
+                  {attachedVideo && (
+                    <div className="absolute bottom-1.5 right-1.5 flex items-center gap-1 bg-black/60 text-white rounded-md px-1.5 py-0.5">
+                      <Play size={7} className="fill-white" />
+                      <span className="text-[9px] font-bold font-sans leading-none">Video</span>
+                    </div>
+                  )}
                 </div>
               ) : attachedVideo ? (
                 <div className="relative overflow-hidden rounded-lg border border-black/5 aspect-video w-full my-2 bg-stone-900 shadow-sm shrink-0">
@@ -283,11 +290,14 @@ export function CardCompactView({
 
           {/* Date / Recurrence */}
           {isTask && (
-            <div className="flex items-center gap-2 text-stone-500">
+            <div className="flex items-center gap-1.5 text-stone-500">
               {card.is_recurring && (
-                <span title={`Recurring ${card.recurrence_rule}`}>
-                  <RotateCcw size={10} className="text-stone-600/80 animate-[spin_10s_linear_infinite]" />
-                </span>
+                <div
+                  className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-purple-100/70"
+                  title={`Recurring ${card.recurrence_rule}`}
+                >
+                  <RotateCcw size={9} className="text-purple-600 animate-[spin_10s_linear_infinite]" />
+                </div>
               )}
               {card.due_date && (
                 <div
