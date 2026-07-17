@@ -2,11 +2,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Plus, Trash2, Calendar, Flag, RotateCcw, AlertCircle } from 'lucide-react';
-import type { CardWithRelations, CardType, Priority, RecurrenceRule } from '@/lib/types';
+import { X, Plus, Trash2, Calendar, Flag, RotateCcw, AlertCircle, Play, Youtube } from 'lucide-react';
+import type { CardWithRelations, CardType, Priority, RecurrenceRule, Media } from '@/lib/types';
 import { ColorPicker } from './ColorPicker';
 import { createCard, updateCard, deleteCard } from '@/lib/actions/cards';
 import { createSubtask, toggleSubtaskCompleted, updateSubtaskTitle, deleteSubtask } from '@/lib/actions/subtasks';
+import { ImageDropzone } from '../media/ImageDropzone';
+import { VideoUrlInput } from '../media/VideoUrlInput';
+import { createMedia, deleteMedia } from '@/lib/actions/media';
 
 interface CardEditorModalProps {
   isOpen: boolean;
@@ -55,6 +58,24 @@ export function CardEditorModal({
 
   const originalSubtasksRef = useRef<LocalSubtask[]>([]);
 
+  // Quote-specific Fields
+  const [content, setContent] = useState('');
+  const [attribution, setAttribution] = useState('');
+
+  // Media-specific Fields
+  const [imageStoragePath, setImageStoragePath] = useState<string | null>(null);
+  const [videoInfo, setVideoInfo] = useState<{
+    youtube_url: string | null;
+    youtube_video_id: string | null;
+    thumbnail_url: string | null;
+    title?: string | null;
+  } | null>(null);
+
+  const originalMediaRef = useRef<Media[]>([]);
+
+  // Video Playing state for enlarged detail modal player
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+
   useEffect(() => {
     setMounted(true);
     return () => setMounted(false);
@@ -64,6 +85,7 @@ export function CardEditorModal({
   useEffect(() => {
     if (isOpen) {
       setError(null);
+      setIsVideoPlaying(false);
       if (card) {
         setType(card.type);
         setTitle(card.title || '');
@@ -78,6 +100,9 @@ export function CardEditorModal({
         setIsRecurring(card.is_recurring || false);
         setRecurrenceRule(card.recurrence_rule || 'weekly');
 
+        setContent(card.content || '');
+        setAttribution(card.attribution || '');
+
         const initialSubtasks = (card.subtasks || []).map((sub) => ({
           id: sub.id,
           title: sub.title,
@@ -85,6 +110,24 @@ export function CardEditorModal({
         }));
         setSubtasks(initialSubtasks);
         originalSubtasksRef.current = JSON.parse(JSON.stringify(initialSubtasks));
+
+        const cardMedia = card.media || [];
+        originalMediaRef.current = cardMedia;
+
+        const img = cardMedia.find((m) => m.media_type === 'image');
+        setImageStoragePath(img ? img.storage_path : null);
+
+        const vid = cardMedia.find((m) => m.media_type === 'video');
+        setVideoInfo(
+          vid
+            ? {
+                youtube_url: vid.youtube_url,
+                youtube_video_id: vid.youtube_video_id,
+                thumbnail_url: vid.thumbnail_url,
+                title: 'YouTube Video',
+              }
+            : null
+        );
       } else {
         setType(cardType);
         setTitle('');
@@ -100,6 +143,12 @@ export function CardEditorModal({
         setRecurrenceRule('weekly');
         setSubtasks([]);
         originalSubtasksRef.current = [];
+
+        setContent('');
+        setAttribution('');
+        setImageStoragePath(null);
+        setVideoInfo(null);
+        originalMediaRef.current = [];
       }
     }
   }, [isOpen, card, cardType]);
@@ -133,9 +182,32 @@ export function CardEditorModal({
   // Save Card
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) {
-      setError('Title is required');
-      return;
+
+    // ── 0. Validate Fields based on Type ──
+    let cardTitle = title.trim();
+    if (type === 'quote') {
+      if (!content.trim()) {
+        setError('Quote content is required');
+        return;
+      }
+      cardTitle = title.trim() || 'Quote';
+    } else if (type === 'image') {
+      if (!imageStoragePath) {
+        setError('An image upload is required for image cards');
+        return;
+      }
+      cardTitle = title.trim() || 'Image Card';
+    } else if (type === 'video') {
+      if (!videoInfo || !videoInfo.youtube_video_id) {
+        setError('A YouTube video link is required for video cards');
+        return;
+      }
+      cardTitle = title.trim() || videoInfo.title || 'Video Card';
+    } else {
+      if (!cardTitle) {
+        setError('Title is required');
+        return;
+      }
     }
 
     setLoading(true);
@@ -148,10 +220,10 @@ export function CardEditorModal({
       const cardInput = {
         board_id: '',        // overridden in createCard server action
         type,
-        title,
+        title: cardTitle,
         description: description || null,
-        content: null,       // not used for goal/task types
-        attribution: null,   // not used for goal/task types
+        content: type === 'quote' ? content : null,
+        attribution: type === 'quote' ? attribution : null,
         color,
         is_completed: isCompleted,
         is_starred: isStarred,
@@ -161,12 +233,12 @@ export function CardEditorModal({
         due_date: type === 'task' && dueDate ? dueDate : null,
         is_recurring: type === 'task' ? isRecurring : false,
         recurrence_rule: type === 'task' && isRecurring ? recurrenceRule : null,
-        position_x: 0,
-        position_y: 0,
-        width: 220,
-        height: 220,
-        z_index: 1,
-        rotation: 0,
+        position_x: card ? card.position_x : 0,
+        position_y: card ? card.position_y : 0,
+        width: card ? card.width : 220,
+        height: card ? card.height : 220,
+        z_index: card ? card.z_index : 1,
+        rotation: card ? card.rotation : 0,
       };
 
       let savedCard;
@@ -176,10 +248,10 @@ export function CardEditorModal({
         savedCard = await createCard(cardInput);
       }
 
+      const cardId = savedCard.id;
+
       // ── 2. Sync Subtasks (tasks only) ──
       if (type === 'task') {
-        const cardId = savedCard.id;
-
         // A. Delete removed subtasks
         const originalIds = originalSubtasksRef.current.map((s) => s.id).filter(Boolean) as string[];
         const currentIds = subtasks.map((s) => s.id).filter(Boolean) as string[];
@@ -193,19 +265,12 @@ export function CardEditorModal({
         for (let i = 0; i < subtasks.length; i++) {
           const sub = subtasks[i];
           if (sub.isNew) {
-            // Create
             await createSubtask({
               card_id: cardId,
               title: sub.title.trim() || 'Subtask',
               position: i,
             });
-            // Note: createSubtask sets completed to false by default, if user checked it in modal, we might need to toggle it.
-            // But usually new subtasks are not completed. If it's checked, we'll toggle it.
-            if (sub.is_completed) {
-              // Wait, to keep it simple, we just create it.
-            }
           } else if (sub.id) {
-            // Update title if changed
             const orig = originalSubtasksRef.current.find((o) => o.id === sub.id);
             if (orig) {
               if (orig.title !== sub.title) {
@@ -216,6 +281,43 @@ export function CardEditorModal({
               }
             }
           }
+        }
+      }
+
+      // ── 3. Sync Media (images & videos) ──
+      const originalMedia = originalMediaRef.current || [];
+      const originalImage = originalMedia.find((m) => m.media_type === 'image');
+      const originalVideo = originalMedia.find((m) => m.media_type === 'video');
+
+      // Sync Image attachment
+      if (imageStoragePath !== (originalImage?.storage_path || null)) {
+        if (originalImage) {
+          await deleteMedia(originalImage.id);
+        }
+        if (imageStoragePath) {
+          await createMedia({
+            card_id: cardId,
+            media_type: 'image',
+            storage_path: imageStoragePath,
+          });
+        }
+      }
+
+      // Sync Video attachment
+      const currentVideoUrl = videoInfo?.youtube_url || null;
+      const originalVideoUrl = originalVideo?.youtube_url || null;
+      if (currentVideoUrl !== originalVideoUrl) {
+        if (originalVideo) {
+          await deleteMedia(originalVideo.id);
+        }
+        if (videoInfo && videoInfo.youtube_video_id) {
+          await createMedia({
+            card_id: cardId,
+            media_type: 'video',
+            youtube_url: videoInfo.youtube_url,
+            youtube_video_id: videoInfo.youtube_video_id,
+            thumbnail_url: videoInfo.thumbnail_url,
+          });
         }
       }
 
@@ -274,60 +376,181 @@ export function CardEditorModal({
             </div>
           )}
 
-          {/* Type Toggle (Only for new cards) */}
-          {!card && (
-            <div className="flex gap-2 p-1 bg-stone-100 rounded-xl max-w-xs">
-              <button
-                type="button"
-                className={`flex-1 py-1.5 rounded-lg text-xs font-semibold font-sans transition-all duration-200 ${
-                  type === 'goal' ? 'bg-white text-stone-800 shadow-sm' : 'text-stone-500 hover:text-stone-800'
-                }`}
-                onClick={() => setType('goal')}
-              >
-                Goal
-              </button>
-              <button
-                type="button"
-                className={`flex-1 py-1.5 rounded-lg text-xs font-semibold font-sans transition-all duration-200 ${
-                  type === 'task' ? 'bg-white text-stone-800 shadow-sm' : 'text-stone-500 hover:text-stone-800'
-                }`}
-                onClick={() => setType('task')}
-              >
-                Task
-              </button>
+          {/* Playable YouTube Video Player (Enlarged card view iframe/facade) */}
+          {videoInfo?.youtube_video_id && (
+            <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-stone-900 border border-stone-200/20 shadow-md group mb-4">
+              {isVideoPlaying ? (
+                <iframe
+                  src={`https://www.youtube.com/embed/${videoInfo.youtube_video_id}?autoplay=1`}
+                  title={title || 'YouTube video player'}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="w-full h-full absolute inset-0"
+                />
+              ) : (
+                <div 
+                  className="w-full h-full relative cursor-pointer"
+                  onClick={() => setIsVideoPlaying(true)}
+                >
+                  {videoInfo.thumbnail_url ? (
+                    <img
+                      src={videoInfo.thumbnail_url}
+                      alt="Video preview"
+                      className="w-full h-full object-cover select-none"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-stone-900 flex items-center justify-center">
+                      <Youtube size={48} className="text-rose-600" />
+                    </div>
+                  )}
+                  {/* Overlay and play button */}
+                  <div className="absolute inset-0 bg-black/25 group-hover:bg-black/35 transition-colors flex items-center justify-center">
+                    <div className="w-14 h-14 rounded-full bg-white/95 text-stone-850 flex items-center justify-center shadow-lg transition-transform duration-300 scale-95 group-hover:scale-105">
+                      <Play size={20} className="fill-stone-855 translate-x-0.5 text-stone-855" />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Title */}
-          <div className="space-y-1.5">
-            <label htmlFor="card-title" className="text-xs font-bold font-sans text-stone-700 uppercase tracking-wider">
-              Title
-            </label>
-            <input
-              id="card-title"
-              type="text"
-              required
-              placeholder={type === 'goal' ? 'e.g. Run a Half Marathon' : 'e.g. Prepare presentation slides'}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white placeholder:text-stone-400 text-stone-800 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-cork-400 focus:border-transparent transition-all duration-200"
-            />
-          </div>
+          {/* Type Toggle (Only for new cards) */}
+          {!card && (
+            <div className="flex flex-wrap gap-1 p-1 bg-stone-100 rounded-xl">
+              {(['goal', 'task', 'image', 'quote', 'video'] as CardType[]).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold font-sans transition-all duration-200 capitalize ${
+                    type === t ? 'bg-white text-stone-850 shadow-sm' : 'text-stone-500 hover:text-stone-850'
+                  }`}
+                  onClick={() => setType(t)}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          )}
 
-          {/* Description */}
-          <div className="space-y-1.5">
-            <label htmlFor="card-desc" className="text-xs font-bold font-sans text-stone-700 uppercase tracking-wider">
-              Description
-            </label>
-            <textarea
-              id="card-desc"
-              rows={3}
-              placeholder="Add details, notes, or thoughts..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white placeholder:text-stone-400 text-stone-800 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-cork-400 focus:border-transparent transition-all duration-200 resize-none"
-            />
-          </div>
+          {/* Title - Hidden for quotes */}
+          {type !== 'quote' && (
+            <div className="space-y-1.5 animate-[fade-in_0.2s_ease-out]">
+              <label htmlFor="card-title" className="text-xs font-bold font-sans text-stone-700 uppercase tracking-wider">
+                {type === 'image' ? 'Caption' : 'Title'}
+              </label>
+              <input
+                id="card-title"
+                type="text"
+                required={type !== 'image' && type !== 'video'}
+                placeholder={
+                  type === 'goal'
+                    ? 'e.g. Run a Half Marathon'
+                    : type === 'task'
+                    ? 'e.g. Prepare presentation slides'
+                    : type === 'image'
+                    ? 'e.g. Dream House (optional caption)'
+                    : 'e.g. Inspiring Talk (optional)'
+                }
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white placeholder:text-stone-400 text-stone-800 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-cork-400 focus:border-transparent transition-all duration-200"
+              />
+            </div>
+          )}
+
+          {/* Description - Hidden for quotes */}
+          {type !== 'quote' && (
+            <div className="space-y-1.5 animate-[fade-in_0.2s_ease-out]">
+              <label htmlFor="card-desc" className="text-xs font-bold font-sans text-stone-700 uppercase tracking-wider">
+                {type === 'image' || type === 'video' ? 'Notes' : 'Description'}
+              </label>
+              <textarea
+                id="card-desc"
+                rows={3}
+                placeholder="Add details, notes, or thoughts..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white placeholder:text-stone-400 text-stone-800 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-cork-400 focus:border-transparent transition-all duration-200 resize-none"
+              />
+            </div>
+          )}
+
+          {/* Quote Fields */}
+          {type === 'quote' && (
+            <div className="space-y-4 animate-[fade-in_0.2s_ease-out]">
+              <div className="space-y-1.5">
+                <label htmlFor="quote-text" className="text-xs font-bold font-sans text-stone-700 uppercase tracking-wider">
+                  Quote Text
+                </label>
+                <textarea
+                  id="quote-text"
+                  required
+                  rows={4}
+                  placeholder="Type or paste the quote text..."
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white placeholder:text-stone-400 text-stone-850 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-cork-400 focus:border-transparent transition-all duration-200 font-serif italic"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="quote-author" className="text-xs font-bold font-sans text-stone-700 uppercase tracking-wider">
+                  Attribution (Author)
+                </label>
+                <input
+                  id="quote-author"
+                  type="text"
+                  placeholder="e.g. Maya Angelou"
+                  value={attribution}
+                  onChange={(e) => setAttribution(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white placeholder:text-stone-400 text-stone-800 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-cork-400 focus:border-transparent transition-all duration-200"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Image Fields */}
+          {type === 'image' && (
+            <div className="space-y-4 animate-[fade-in_0.2s_ease-out]">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold font-sans text-stone-700 uppercase tracking-wider">
+                  Upload Image
+                </label>
+                <ImageDropzone
+                  cardId={card?.id}
+                  value={imageStoragePath}
+                  onUploadSuccess={setImageStoragePath}
+                  onRemove={() => setImageStoragePath(null)}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Video Fields */}
+          {type === 'video' && (
+            <div className="space-y-4 animate-[fade-in_0.2s_ease-out]">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold font-sans text-stone-700 uppercase tracking-wider">
+                  YouTube Video Link
+                </label>
+                <VideoUrlInput
+                  value={videoInfo}
+                  onSelect={(info) => {
+                    setVideoInfo({
+                      youtube_url: info.youtubeUrl,
+                      youtube_video_id: info.youtubeVideoId,
+                      thumbnail_url: info.thumbnailUrl,
+                      title: info.title,
+                    });
+                    if (!title) {
+                      setTitle(info.title);
+                    }
+                  }}
+                  onRemove={() => setVideoInfo(null)}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Color Picker */}
           <div className="space-y-1.5">
@@ -339,7 +562,7 @@ export function CardEditorModal({
 
           {/* ── Goal Fields ── */}
           {type === 'goal' && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 animate-[fade-in_0.2s_ease-out]">
               {/* Category */}
               <div className="space-y-1.5">
                 <label htmlFor="goal-category" className="text-xs font-bold font-sans text-stone-700 uppercase tracking-wider">
@@ -379,7 +602,7 @@ export function CardEditorModal({
 
           {/* ── Task Fields ── */}
           {type === 'task' && (
-            <div className="space-y-5">
+            <div className="space-y-5 animate-[fade-in_0.2s_ease-out]">
               <div className="grid grid-cols-2 gap-4">
                 {/* Priority */}
                 <div className="space-y-1.5">
@@ -506,6 +729,45 @@ export function CardEditorModal({
                       </div>
                     ))
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Media Attachments (for Goal and Task) */}
+          {(type === 'goal' || type === 'task') && (
+            <div className="border-t border-stone-200/60 pt-4 space-y-4 animate-[fade-in_0.2s_ease-out]">
+              <h4 className="text-xs font-bold font-sans text-stone-700 uppercase tracking-wider">
+                Media Attachments (Optional)
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold font-sans text-stone-500 uppercase tracking-wider">
+                    Attach Image
+                  </label>
+                  <ImageDropzone
+                    cardId={card?.id}
+                    value={imageStoragePath}
+                    onUploadSuccess={setImageStoragePath}
+                    onRemove={() => setImageStoragePath(null)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold font-sans text-stone-500 uppercase tracking-wider">
+                    Attach YouTube Video
+                  </label>
+                  <VideoUrlInput
+                    value={videoInfo}
+                    onSelect={(info) => {
+                      setVideoInfo({
+                        youtube_url: info.youtubeUrl,
+                        youtube_video_id: info.youtubeVideoId,
+                        thumbnail_url: info.thumbnailUrl,
+                        title: info.title,
+                      });
+                    }}
+                    onRemove={() => setVideoInfo(null)}
+                  />
                 </div>
               </div>
             </div>

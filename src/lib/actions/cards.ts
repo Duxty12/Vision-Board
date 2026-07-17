@@ -105,13 +105,38 @@ export async function createCard(input: CreateCardInput): Promise<CardWithRelati
 
 /**
  * Update an existing card.
+ * board_id is intentionally excluded — it should not change after creation.
+ * Position/layout fields (position_x/y, width, height, z_index, rotation)
+ * are updated separately by the drag-and-drop system in Phase 4.
  */
 export async function updateCard(id: string, input: UpdateCardInput): Promise<CardWithRelations> {
   try {
     const { userId, supabase } = await getAuthUserContext();
+
+    // Strip fields that must not change via the editor modal.
+    // board_id arriving as '' from CardEditorModal would fail UUID validation.
+    const {
+      board_id: _board_id,
+      position_x: _px,
+      position_y: _py,
+      width: _w,
+      height: _h,
+      z_index: _z,
+      rotation: _rot,
+      ...safeInput
+    } = input as UpdateCardInput & {
+      board_id?: string;
+      position_x?: number;
+      position_y?: number;
+      width?: number;
+      height?: number;
+      z_index?: number;
+      rotation?: number;
+    };
+
     const { data, error } = await supabase
       .from('cards')
-      .update({ ...input, updated_at: new Date().toISOString() })
+      .update({ ...safeInput, updated_at: new Date().toISOString() })
       .eq('id', id)
       .eq('user_id', userId)
       .select('*, subtasks(*), media(*)')
@@ -136,6 +161,14 @@ export async function updateCard(id: string, input: UpdateCardInput): Promise<Ca
 export async function deleteCard(id: string): Promise<void> {
   try {
     const { userId, supabase } = await getAuthUserContext();
+
+    // Fetch associated media to clean up storage files before RLS/cascade deletion
+    const { data: mediaItems } = await supabase
+      .from('media')
+      .select('storage_path')
+      .eq('card_id', id)
+      .eq('media_type', 'image');
+
     const { error } = await supabase
       .from('cards')
       .delete()
@@ -143,6 +176,19 @@ export async function deleteCard(id: string): Promise<void> {
       .eq('user_id', userId);
 
     if (error) throw error;
+
+    // Clean up files in storage
+    if (mediaItems && mediaItems.length > 0) {
+      const pathsToDelete = mediaItems.map(m => m.storage_path).filter(Boolean) as string[];
+      if (pathsToDelete.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from('board-media')
+          .remove(pathsToDelete);
+        if (storageError) {
+          console.error(`[deleteCard] Failed to delete media files from storage:`, storageError);
+        }
+      }
+    }
 
     revalidatePath('/goals');
     revalidatePath('/tasks');

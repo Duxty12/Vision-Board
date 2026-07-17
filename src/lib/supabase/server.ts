@@ -14,8 +14,24 @@ import { auth } from '@clerk/nextjs/server';
  */
 export async function createServerClient(): Promise<SupabaseClient<Database>> {
   const cookieStore = await cookies();
-  const { getToken } = auth();
-  const token = await getToken({ template: 'supabase' });
+
+  // Attempt to get a Clerk-signed JWT for Supabase RLS.
+  // This requires a JWT template named "supabase" to be configured in the
+  // Clerk dashboard (Settings → JWT Templates). If the template doesn't exist
+  // yet, we fall back gracefully without a token — the client still works but
+  // Supabase RLS policies will not recognise the user.
+  let token: string | null = null;
+  try {
+    const { getToken } = auth();
+    token = await getToken({ template: 'supabase' });
+  } catch {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(
+        '[Supabase] ⚠️  Could not get Clerk JWT for template "supabase". ' +
+        'RLS will not be user-scoped. Create the template in your Clerk dashboard to enable RLS.',
+      );
+    }
+  }
 
   return _createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
