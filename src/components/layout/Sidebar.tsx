@@ -7,7 +7,7 @@ import {
   LayoutDashboard,
   Target,
   CheckSquare,
-  FolderOpen,
+  LayoutGrid,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -20,7 +20,7 @@ const NAV_ITEMS = [
   { href: '/dashboard',   label: 'Dashboard',   icon: LayoutDashboard },
   { href: '/goals',       label: 'Goals',       icon: Target },
   { href: '/tasks',       label: 'Tasks',       icon: CheckSquare },
-  { href: '/collections', label: 'Collections', icon: FolderOpen },
+  { href: '/collections', label: 'Vision Boards', icon: LayoutGrid },
 ] as const;
 
 const BOTTOM_NAV = [

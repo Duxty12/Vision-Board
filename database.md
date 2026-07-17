@@ -4,23 +4,36 @@ This document is the single source of truth for the Supabase/Postgres database: 
 
 ---
 
+## 0. Changelog (this revision)
+
+The Collections feature changed from "tag groupings for cards" to "manage multiple vision boards." Changes made to this file to match:
+
+- **Removed** the `collections` table entirely (schema, migration DDL, index, RLS policy, and all its queries in §5.9).
+- **Removed** `cards.collection_id` (column, migration DDL, index, insert/update/query statements that referenced it) — a card's grouping is now its existing `board_id`, nothing else changed there.
+- **Added** `boards.is_starred` (boolean, default `false`) so boards can be featured on the Dashboard, mirroring how `cards.is_starred` already works.
+- **Added** an index on `boards.is_starred` (partial, `where is_starred = true`) matching the existing pattern used for `cards.is_starred`.
+- **Added** queries: toggle a board's starred state, get a user's starred boards, get all boards for a user with card counts (replaces the deleted collections-with-counts query, now used by the Collections page's board grid).
+- **Removed** queries that only made sense for the old collections model: "Get cards by collection," "Assign/remove card from a collection," and the entire §5.9 Collections block.
+- Renumbered schema subsections (§2.3 `collections` removed, everything after it shifted up by one) and updated the Entity Overview diagram and Query-to-Feature Map accordingly.
+
+Everything else (goals, tasks, media, stickers, subtasks, search, email query) is unchanged.
+
+---
+
 ## 1. Entity Overview
 
 ```
 users
-  └─< boards
+  └─< boards (now: is_default + is_starred)
         ├─< cards ─< subtasks
         │      └─< media
         └─< stickers
-
-collections
-  └─< cards (optional link via collection_id)
 ```
 
-- A `user` has one or more `boards` (default: one).
-- A `board` has many `cards` and many `stickers`.
+- A `user` has one or more `boards` (default: one, auto-created on signup).
+- A `board` has many `cards` and many `stickers`, and can be starred (`is_starred`) to feature it on the Dashboard.
+- A `card` belongs to exactly one `board` (via `board_id`) — this is now the only grouping mechanism for cards; the old `collections` table/`collection_id` link has been removed.
 - A `card` can have many `subtasks` (tasks only) and many `media` rows (usually 0–1 image + 0–1 video, but table allows more).
-- A `collection` groups `cards` across types (goal/task/image/quote/video) via an optional `collection_id` on `cards`.
 
 ---
 
@@ -45,27 +58,17 @@ collections
 | user_id | uuid, FK → users.id, on delete cascade | |
 | title | text, not null | default `'My Vision Board'` |
 | theme | text | `cork` \| `linen` \| `gradient` \| `dark`, default `cork` |
-| is_default | boolean | default `true` |
+| is_default | boolean | default `true` — the board auto-created on signup; renders on the Dashboard canvas |
+| is_starred | boolean | **new** — default `false`; featured on the Dashboard's featured-boards strip |
 | created_at | timestamptz | default `now()` |
 
-### 2.3 `collections`
+### 2.3 `cards`
 
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid, PK | |
 | user_id | uuid, FK → users.id, on delete cascade | |
-| name | text, not null | |
-| color | text | default `#F5E6CC` |
-| created_at | timestamptz | default `now()` |
-
-### 2.4 `cards`
-
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid, PK | |
-| user_id | uuid, FK → users.id, on delete cascade | |
-| board_id | uuid, FK → boards.id, on delete cascade | |
-| collection_id | uuid, FK → collections.id, on delete set null | nullable |
+| board_id | uuid, FK → boards.id, on delete cascade | now the card's only grouping key (`collection_id` removed) |
 | type | text, not null | check in `('goal','task','image','quote','video')` |
 | title | text | |
 | description | text | |
@@ -89,7 +92,7 @@ collections
 | created_at | timestamptz | default `now()` |
 | updated_at | timestamptz | default `now()` |
 
-### 2.5 `subtasks`
+### 2.4 `subtasks`
 
 | Column | Type | Notes |
 |---|---|---|
@@ -99,7 +102,7 @@ collections
 | is_completed | boolean | default `false` |
 | position | int | default `0`, for ordering |
 
-### 2.6 `media`
+### 2.5 `media`
 
 | Column | Type | Notes |
 |---|---|---|
@@ -112,7 +115,7 @@ collections
 | thumbnail_url | text | |
 | created_at | timestamptz | default `now()` |
 
-### 2.7 `stickers`
+### 2.6 `stickers`
 
 | Column | Type | Notes |
 |---|---|---|
@@ -143,28 +146,24 @@ create table users (
   created_at timestamptz default now()
 );
 
+-- boards: is_starred added so a board can be featured on the Dashboard
 create table boards (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references users(id) on delete cascade,
   title text not null default 'My Vision Board',
   theme text default 'cork',
   is_default boolean default true,
+  is_starred boolean default false,
   created_at timestamptz default now()
 );
 
-create table collections (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references users(id) on delete cascade,
-  name text not null,
-  color text default '#F5E6CC',
-  created_at timestamptz default now()
-);
+-- NOTE: the old `collections` table has been removed. Boards are now
+-- the only grouping mechanism for cards (see cards.board_id below).
 
 create table cards (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references users(id) on delete cascade,
   board_id uuid references boards(id) on delete cascade,
-  collection_id uuid references collections(id) on delete set null,
   type text not null check (type in ('goal','task','image','quote','video')),
   title text,
   description text,
@@ -226,10 +225,9 @@ create table stickers (
 
 ```sql
 create index idx_boards_user_id on boards(user_id);
-create index idx_collections_user_id on collections(user_id);
+create index idx_boards_is_starred on boards(is_starred) where is_starred = true; -- new
 create index idx_cards_user_id on cards(user_id);
 create index idx_cards_board_id on cards(board_id);
-create index idx_cards_collection_id on cards(collection_id);
 create index idx_cards_type on cards(type);
 create index idx_cards_is_starred on cards(is_starred) where is_starred = true;
 create index idx_cards_is_completed on cards(is_completed);
@@ -237,6 +235,8 @@ create index idx_subtasks_card_id on subtasks(card_id);
 create index idx_media_card_id on media(card_id);
 create index idx_stickers_board_id on stickers(board_id);
 ```
+
+*(Removed: `idx_collections_user_id` and `idx_cards_collection_id` — both referenced dropped objects.)*
 
 ### 3.2 `updated_at` trigger for `cards`
 
@@ -266,7 +266,6 @@ Enable RLS on every table, then scope access to rows owned (directly or indirect
 ```sql
 alter table users enable row level security;
 alter table boards enable row level security;
-alter table collections enable row level security;
 alter table cards enable row level security;
 alter table subtasks enable row level security;
 alter table media enable row level security;
@@ -285,12 +284,6 @@ using (clerk_id = auth.jwt() ->> 'sub');
 -- boards
 create policy "boards_all_own"
 on boards for all
-using (user_id = (select id from users where clerk_id = auth.jwt() ->> 'sub'))
-with check (user_id = (select id from users where clerk_id = auth.jwt() ->> 'sub'));
-
--- collections
-create policy "collections_all_own"
-on collections for all
 using (user_id = (select id from users where clerk_id = auth.jwt() ->> 'sub'))
 with check (user_id = (select id from users where clerk_id = auth.jwt() ->> 'sub'));
 
@@ -349,6 +342,8 @@ with check (
 );
 ```
 
+*(Removed: `alter table collections enable row level security` and its `collections_all_own` policy — the table no longer exists.)*
+
 **Storage policy** (Supabase Storage, bucket `board-media`, path convention `{user_id}/{card_id}/{filename}`):
 
 ```sql
@@ -395,7 +390,7 @@ select * from users where clerk_id = $1;
 update users set onboarding_complete = true where clerk_id = $1;
 ```
 
-### 5.2 Boards
+### 5.2 Boards (now covers create/edit/delete/star from the Collections page)
 
 ```sql
 -- Create default board (on user creation)
@@ -403,17 +398,37 @@ insert into boards (user_id, title, theme, is_default)
 values ($1, 'My Vision Board', 'cork', true)
 returning *;
 
--- Get user's default board
+-- Create a new (non-default) vision board — Collections page "create board"
+insert into boards (user_id, title, theme, is_default)
+values ($1, $2, $3, false)
+returning *;
+
+-- Get user's default board (renders on the Dashboard canvas)
 select * from boards where user_id = $1 and is_default = true limit 1;
 
--- Get all boards for a user
-select * from boards where user_id = $1 order by created_at asc;
+-- Get all boards for a user, with card counts — Collections page board grid
+-- (replaces the old collections-with-counts query)
+select b.*, count(c.id) as card_count
+from boards b
+left join cards c on c.board_id = b.id
+where b.user_id = $1
+group by b.id
+order by b.created_at asc;
+
+-- Get a single board by id — board canvas page (/collections/[id])
+select * from boards where id = $1;
+
+-- Get starred boards — Dashboard's featured-boards strip
+select * from boards where user_id = $1 and is_starred = true order by created_at desc;
+
+-- Update board title
+update boards set title = $2 where id = $1 returning *;
 
 -- Update board theme
 update boards set theme = $2 where id = $1 returning *;
 
--- Update board title
-update boards set title = $2 where id = $1 returning *;
+-- Toggle board starred
+update boards set is_starred = not is_starred where id = $1 returning *;
 
 -- Delete a board (cascades to cards, stickers)
 delete from boards where id = $1;
@@ -424,27 +439,24 @@ delete from boards where id = $1;
 ```sql
 -- Create a card
 insert into cards (
-  user_id, board_id, collection_id, type, title, description, content,
+  user_id, board_id, type, title, description, content,
   attribution, color, category, target_year, due_date, priority,
   is_recurring, recurrence_rule, position_x, position_y, width, height, z_index, rotation
 )
-values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
 returning *;
 
 -- Get single card by id (with media + subtasks joined in application code)
 select * from cards where id = $1;
 
--- Get all cards for a board (dashboard canvas)
+-- Get all cards for a board (Dashboard canvas / a board's own canvas page)
 select * from cards where board_id = $1 order by z_index asc;
 
 -- Get all cards of a type for a user (Goals page / Tasks page)
 select * from cards where user_id = $1 and type = $2 order by created_at desc;
 
--- Get starred cards (Featured strip on Dashboard)
+-- Get starred cards (Featured cards strip on Dashboard)
 select * from cards where user_id = $1 and is_starred = true order by updated_at desc;
-
--- Get cards by collection
-select * from cards where collection_id = $1 order by created_at desc;
 
 -- Update a card (generic edit — title/description/color/category/etc.)
 update cards
@@ -454,7 +466,7 @@ set title = $2, description = $3, content = $4, attribution = $5, color = $6,
 where id = $1
 returning *;
 
--- Update card position (drag on dashboard canvas)
+-- Update card position (drag on a board's canvas)
 update cards
 set position_x = $2, position_y = $3, z_index = $4
 where id = $1
@@ -469,12 +481,14 @@ update cards set is_completed = not is_completed where id = $1 returning *;
 -- Toggle starred
 update cards set is_starred = not is_starred where id = $1 returning *;
 
--- Assign/remove card from a collection
-update cards set collection_id = $2 where id = $1 returning *;
+-- Move a card to a different board (drag between boards, if supported in UI)
+update cards set board_id = $2 where id = $1 returning *;
 
 -- Delete a card (cascades to subtasks, media)
 delete from cards where id = $1;
 ```
+
+*(Removed: "Get cards by collection" and "Assign/remove card from a collection" — `collection_id` no longer exists; `board_id` is the only grouping key.)*
 
 ### 5.4 Goals-specific queries (`type = 'goal'`)
 
@@ -599,30 +613,7 @@ returning *;
 delete from stickers where id = $1;
 ```
 
-### 5.9 Collections
-
-```sql
--- Create a collection
-insert into collections (user_id, name, color)
-values ($1, $2, $3)
-returning *;
-
--- Get all collections for a user, with card counts
-select c.*, count(cd.id) as card_count
-from collections c
-left join cards cd on cd.collection_id = c.id
-where c.user_id = $1
-group by c.id
-order by c.created_at desc;
-
--- Rename / recolor a collection
-update collections set name = $2, color = $3 where id = $1 returning *;
-
--- Delete a collection (cards' collection_id set to null via FK, not deleted)
-delete from collections where id = $1;
-```
-
-### 5.10 Search (across card types)
+### 5.9 Search (across card types)
 
 ```sql
 -- Full-text-ish search across title/description/content for a user
@@ -636,7 +627,7 @@ where user_id = $1
 order by updated_at desc;
 ```
 
-### 5.11 "Email my board" query (Resend trigger)
+### 5.10 "Email my board" query (Resend trigger)
 
 ```sql
 -- Featured/starred cards to include in the emailed board summary
@@ -649,6 +640,8 @@ where c.user_id = $1 and c.is_starred = true
 order by c.updated_at desc;
 ```
 
+*(The old §5.9 "Collections" block — create/list-with-counts/rename/delete a collection — has been removed. Its list-with-counts query now lives under §5.2 Boards, since a "collection" in the new model is a board.)*
+
 ---
 
 ## 6. Query-to-Feature Map (quick reference)
@@ -656,9 +649,10 @@ order by c.updated_at desc;
 | App feature | Query section |
 |---|---|
 | Onboarding / welcome email trigger | 5.1, 5.2 |
-| Dashboard canvas render | 5.3 (board cards), 5.8 (stickers) |
+| Dashboard canvas render (default board) | 5.3 (board cards), 5.8 (stickers) |
 | Dashboard drag/reposition | 5.3 (position update) |
-| Featured strip | 5.3 (starred cards) |
+| Featured cards strip | 5.3 (starred cards) |
+| Featured boards strip | 5.2 (starred boards) |
 | Goals page list + filters | 5.4 |
 | Goals progress widget | 5.4 (stats) |
 | Tasks page list + filters | 5.5 |
@@ -668,10 +662,10 @@ order by c.updated_at desc;
 | Subtask checklist | 5.6 |
 | Image upload attach | 5.7 (image insert) |
 | YouTube paste + embed | 5.7 (video insert) |
-| Collections page | 5.9 |
-| Collection detail page | 5.3 (by collection) |
-| Search & filter bar | 5.10 |
-| "Email my board" button | 5.11 |
+| Collections page (board grid, create/edit/delete/star) | 5.2 |
+| A board's own canvas page (`/collections/[id]`) | 5.2 (single board), 5.3 (its cards), 5.8 (its stickers) |
+| Search & filter bar | 5.9 |
+| "Email my board" button | 5.10 |
 
 ---
 

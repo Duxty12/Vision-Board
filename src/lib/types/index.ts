@@ -36,20 +36,12 @@ export type Board = {
   title: string;
   theme: BoardTheme;
   is_default: boolean;
+  is_starred: boolean;    // featured on Dashboard's boards strip
   created_at: string;
 }
 
-/** Mirrors the `collections` table. Themed groupings of cards. */
-export type Collection = {
-  id: string;             // uuid PK
-  user_id: string;        // FK → users.id
-  name: string;
-  color: string;          // hex color, default '#F5E6CC'
-  created_at: string;
-}
-
-/** Extended collection with computed card count from SQL aggregate. */
-export type CollectionWithCount = Collection & {
+/** Extended board with computed card count from SQL aggregate. */
+export type BoardWithCount = Board & {
   card_count: number;
 }
 
@@ -60,8 +52,7 @@ export type CollectionWithCount = Collection & {
 export type Card = {
   id: string;               // uuid PK
   user_id: string;          // FK → users.id
-  board_id: string;         // FK → boards.id
-  collection_id: string | null;   // FK → collections.id, nullable
+  board_id: string;         // FK → boards.id (the only grouping key)
   type: CardType;
   title: string | null;
   description: string | null;
@@ -148,9 +139,7 @@ export type CreateCardInput = Pick<
   | 'height'
   | 'z_index'
   | 'rotation'
-> & {
-  collection_id?: string | null;
-};
+>;
 
 export type UpdateCardInput = Partial<
   Omit<Card, 'id' | 'user_id' | 'board_id' | 'created_at' | 'updated_at'>
@@ -158,9 +147,9 @@ export type UpdateCardInput = Partial<
 
 export type UpdateCardPositionInput = Pick<Card, 'position_x' | 'position_y' | 'z_index'>;
 
-export type CreateCollectionInput = Pick<Collection, 'name' | 'color'>;
+export type CreateBoardInput = Pick<Board, 'title' | 'theme'>;
 
-export type UpdateCollectionInput = Pick<Collection, 'name' | 'color'>;
+export type UpdateBoardInput = Partial<Pick<Board, 'title' | 'theme' | 'is_starred' | 'is_default'>>;
 
 export type CreateSubtaskInput = Pick<Subtask, 'card_id' | 'title' | 'position'>;
 
@@ -242,6 +231,7 @@ export type Database = {
           title: string;
           theme: BoardTheme;
           is_default: boolean;
+          is_starred: boolean;
           created_at: string;
         };
         Insert: {
@@ -250,6 +240,7 @@ export type Database = {
           title?: string;
           theme?: BoardTheme;
           is_default?: boolean;
+          is_starred?: boolean;
           created_at?: string;
         };
         Update: {
@@ -258,30 +249,7 @@ export type Database = {
           title?: string;
           theme?: BoardTheme;
           is_default?: boolean;
-          created_at?: string;
-        };
-        Relationships: [];
-      };
-      collections: {
-        Row: {
-          id: string;
-          user_id: string;
-          name: string;
-          color: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          name: string;
-          color?: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          name?: string;
-          color?: string;
+          is_starred?: boolean;
           created_at?: string;
         };
         Relationships: [];
@@ -291,7 +259,6 @@ export type Database = {
           id: string;
           user_id: string;
           board_id: string;
-          collection_id: string | null;
           type: CardType;
           title: string | null;
           description: string | null;
@@ -319,7 +286,6 @@ export type Database = {
           id?: string;
           user_id: string;
           board_id: string;
-          collection_id?: string | null;
           type: CardType;
           title?: string | null;
           description?: string | null;
@@ -347,7 +313,6 @@ export type Database = {
           id?: string;
           user_id?: string;
           board_id?: string;
-          collection_id?: string | null;
           type?: CardType;
           title?: string | null;
           description?: string | null;

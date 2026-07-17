@@ -9,7 +9,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard':   'My Board',
   '/goals':       'Goals',
   '/tasks':       'Tasks',
-  '/collections': 'Collections',
+  '/collections': 'Vision Boards',
   '/settings':    'Settings',
 };
 
@@ -17,7 +17,7 @@ function getPageTitle(pathname: string): string {
   // Exact match first
   if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
   // Collection detail
-  if (pathname.startsWith('/collections/')) return 'Collection';
+  if (pathname.startsWith('/collections/')) return 'Vision Board';
   return 'StillBoard';
 }
 

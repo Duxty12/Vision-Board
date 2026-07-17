@@ -11,7 +11,7 @@ This document is the single source of truth for building the app. Follow it top 
 
 | Layer | Choice |
 |---|---|
-| Framework | Next.js 14+ (App Router, TypeScript) |
+| Framework | Next.js 16 (App Router, TypeScript) |
 | Styling | Tailwind CSS |
 | UI primitives | shadcn/ui |
 | Icons | lucide-react (no emojis anywhere in UI) |
@@ -63,8 +63,8 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
     /dashboard/page.tsx
     /goals/page.tsx
     /tasks/page.tsx
-    /collections/page.tsx
-    /collections/[id]/page.tsx
+    /collections/page.tsx        # vision boards list (create/edit/delete/star)
+    /collections/[id]/page.tsx   # a single vision board's canvas
     /settings/page.tsx
   /api
     /webhooks/clerk/route.ts
@@ -83,7 +83,8 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
     ImageCard.tsx
     VideoCard.tsx
     StickerLayer.tsx
-    FeaturedStrip.tsx
+    FeaturedStrip.tsx          # starred cards strip
+    FeaturedBoardsStrip.tsx    # starred vision boards strip
   /cards
     CardEditorModal.tsx
     CardCompactView.tsx
@@ -97,8 +98,9 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
     SubtaskChecklist.tsx
     RecurrenceControl.tsx
   /collections
-    CollectionGrid.tsx
-    CollectionCard.tsx
+    BoardGrid.tsx           # grid of the user's vision boards
+    BoardCard.tsx           # single board tile: title, theme swatch, count, star toggle
+    BoardEditorModal.tsx    # create/rename/theme-pick/delete a board
   /media
     ImageDropzone.tsx
     VideoUrlInput.tsx
@@ -123,13 +125,12 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
     parse.ts                 # extract video ID from URL
     oembed.ts
   /actions                   # server actions (CRUD)
-    boards.ts
+    boards.ts                # board CRUD, star/unstar, theme, set-default
     cards.ts
     goals.ts
     tasks.ts
     media.ts
     stickers.ts
-    collections.ts
   /types
     index.ts
   /utils.ts
@@ -158,31 +159,25 @@ create table users (
   created_at timestamptz default now()
 );
 
--- boards (a user can have one default board, or multiple)
+-- boards: a user's vision boards. Users can have many.
+-- Created/edited/deleted from the Collections page, and starred to
+-- feature them on the Dashboard.
 create table boards (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references users(id) on delete cascade,
   title text not null default 'My Vision Board',
   theme text default 'cork', -- cork | linen | gradient | dark
-  is_default boolean default true,
-  created_at timestamptz default now()
-);
-
--- collections (theme groupings, e.g. "2026 Goals", "Home Decor")
-create table collections (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references users(id) on delete cascade,
-  name text not null,
-  color text default '#F5E6CC',
+  is_default boolean default true,   -- board auto-created on signup; opens on Dashboard's canvas
+  is_starred boolean default false,  -- featured boards shown on Dashboard
   created_at timestamptz default now()
 );
 
 -- cards: unified table for goal / task / image / quote / video
+-- Every card belongs to exactly one board (its grouping mechanism).
 create table cards (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references users(id) on delete cascade,
   board_id uuid references boards(id) on delete cascade,
-  collection_id uuid references collections(id) on delete set null,
   type text not null check (type in ('goal','task','image','quote','video')),
   title text,
   description text,
@@ -266,11 +261,12 @@ Note: Since Clerk (not Supabase Auth) issues the JWT, configure Supabase to acce
 ## 5. Page-by-Page Specification
 
 ### 5.1 Dashboard (`/dashboard`)
-- Freeform canvas (absolute-positioned cards using `position_x/y`, draggable via dnd-kit)
-- Shows: starred goals, starred tasks, image cards, quote cards, video cards, stickers
-- "Featured strip" at top: horizontally scrollable row of anything with `is_starred = true`
-- Theme switcher (cork / linen / gradient / dark) — persists to `boards.theme`
-- Floating "+" button (lucide `Plus`) opens a quick-add menu: Goal, Task, Image, Quote, Video, Sticker
+- Overview hub, with two horizontally scrollable strips at the top:
+  - **Featured boards strip:** any vision board with `is_starred = true` (board title, theme swatch, card count) — clicking one opens that board's full canvas at `/collections/[id]`
+  - **Featured cards strip:** any card with `is_starred = true`, pulled across all of the user's boards
+- Below the strips, a freeform canvas renders the user's **default board** (`boards.is_default = true`): absolute-positioned cards using `position_x/y`, draggable via dnd-kit, plus its sticker layer
+- Theme switcher (cork / linen / gradient / dark) — persists to `boards.theme` for the board currently open on screen
+- Floating "+" button (lucide `Plus`) opens a quick-add menu: Goal, Task, Image, Quote, Video, Sticker — added to whichever board is currently open
 - Empty state (new user, no cards yet): friendly prompt with `Sparkles` icon and CTA to add first card
 
 ### 5.2 Goals Page (`/goals`)
@@ -287,12 +283,15 @@ Note: Since Clerk (not Supabase Auth) issues the JWT, configure Supabase to acce
 - Filter bar: by priority, by due date (overdue/today/upcoming), by recurring, by completed
 
 ### 5.4 Collections Page (`/collections`)
-- Grid of collection cards (name, color swatch, count of items inside)
-- Click a collection → `/collections/[id]` shows all cards (goals, tasks, images, quotes, videos) tagged to that collection, reusing the same card components
-- Create/rename/delete collection from this page
+- Grid of the user's **vision boards** (`BoardGrid.tsx` / `BoardCard.tsx`): title, theme preview swatch, card count, star toggle (`Star` icon), default-board indicator
+- **Create** a new vision board from this page (title + theme picker, via `BoardEditorModal.tsx`)
+- **Edit** a board: rename, change theme
+- **Delete** a board (confirmation required; cascades to its cards, media, and stickers)
+- **Star/unstar** a board to feature it on the Dashboard's featured boards strip
+- Click a board tile → `/collections/[id]` opens that board's full freeform canvas (same canvas component used for the default board on the Dashboard), scoped to that board's own cards and stickers
 
 ### 5.5 Card Detail / Editor (shared modal component)
-- Used by Dashboard, Goals, Tasks, Collections
+- Used on the Dashboard canvas, Goals, Tasks, and any individual board's canvas (`/collections/[id]`)
 - Fields shown depend on `type`:
   - goal: title, description, category, target_year, due_date, color, image, video, star, complete
   - task: title, description, priority, due_date, recurrence, subtasks, color, image, video, star, complete
@@ -318,7 +317,7 @@ Note: Since Clerk (not Supabase Auth) issues the JWT, configure Supabase to acce
 3. Create a Clerk **JWT template** named `supabase` that includes the Supabase-expected claims, so Clerk-issued JWTs can be passed to Supabase for RLS (`auth.jwt() ->> 'sub'` = Clerk user id).
 4. Set up webhook endpoint `/api/webhooks/clerk`:
    - Listen for `user.created` → insert row into `users` table, then call Resend to send the welcome email, then mark `onboarding_complete` after first board/card is created (or immediately after a default board is auto-created).
-   - Also create a **default board** for the new user in this same handler.
+   - Also create a **default vision board** for the new user in this same handler (`is_default = true`).
 5. Verify webhook signature using `svix` (Clerk's webhook library) and `CLERK_WEBHOOK_SECRET`.
 
 ### 6.2 Supabase (Database + Storage)
@@ -354,7 +353,7 @@ Note: Since Clerk (not Supabase Auth) issues the JWT, configure Supabase to acce
 ## 7. Design System Notes
 
 - **Icons:** lucide-react only. No system emojis anywhere in UI copy, cards, or notifications.
-  - Star toggle → `Star` (filled when starred)
+  - Star toggle → `Star` (filled when starred) — used for both cards and vision boards
   - Task/goal complete → `CheckCircle2` / `Circle`
   - Image card → `Image`
   - Video card → `Video` / `PlayCircle`
@@ -394,34 +393,36 @@ Build in this order so each phase is independently testable:
 11. YouTube URL parser + oEmbed preview + embed facade
 
 **Phase 4 — Dashboard**
-12. Freeform board canvas with dnd-kit drag positioning
-13. Featured strip (starred items)
+12. Freeform board canvas with dnd-kit drag positioning (renders the default board)
+13. Featured cards strip (starred cards)
 14. Sticker layer (add/drag/rotate/scale)
 15. Theme switcher
 
-**Phase 5 — Collections & Filters**
-16. Collections CRUD + collection detail page
-17. Search & filter bar (category, starred, completed, media type)
-18. Progress widgets (goals % complete, tasks this week)
+**Phase 5 — Vision Boards & Filters**
+16. Boards CRUD (create/rename/change theme/delete) + star/unstar, on the Collections page; board canvas at `/collections/[id]` reusing the Dashboard's canvas component
+17. Featured boards strip on the Dashboard
+18. Search & filter bar (category, starred, completed, media type)
+19. Progress widgets (goals % complete, tasks this week)
 
 **Phase 6 — Email**
-19. Resend welcome email on signup (via Clerk webhook)
-20. "Email my board" button + `BoardShareEmail` template + send route
+20. Resend welcome email on signup (via Clerk webhook)
+21. "Email my board" button + `BoardShareEmail` template + send route
 
 **Phase 7 — Polish**
-21. Empty states, loading states, error handling
-22. Responsive/mobile layout for board canvas
-23. Onboarding flow (theme pick + first card prompt) tied to welcome email
-24. Final QA pass against this spec
+22. Empty states, loading states, error handling
+23. Responsive/mobile layout for board canvas
+24. Onboarding flow (theme pick + first card prompt) tied to welcome email
+25. Final QA pass against this spec
 
 ---
 
 ## 9. Open Decisions to Confirm Before Building
 
-- Single board per user vs. multiple boards (spec assumes one default board; multiple boards is a possible v2 extension)
-- Whether "Email my board" sends the full board or only starred/featured items (current plan: featured items, for readability)
-- Free-form pixel positioning vs. a snapping grid on the dashboard canvas
+- Whether "Email my board" sends featured cards from just the default board, or aggregates starred cards across all of the user's vision boards
+- Free-form pixel positioning vs. a snapping grid on a board's canvas
 - Whether recurring tasks auto-regenerate a new card instance on completion, or just reset their own checkbox on a schedule
+- Whether the featured boards strip on the Dashboard shows a live mini-preview of each board's canvas, or just metadata (title, theme swatch, card count)
+- Whether a user can delete their only remaining board, or must always have at least one (likely the default board)
 
 ---
 
