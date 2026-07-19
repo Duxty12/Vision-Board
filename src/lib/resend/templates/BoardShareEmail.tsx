@@ -36,6 +36,7 @@ interface BoardShareEmailProps {
   name?: string;
   boardTitle?: string;
   cards?: CardItem[];
+  screenshotUrl?: string;
   dashboardUrl?: string;
 }
 
@@ -43,6 +44,7 @@ export const BoardShareEmail = ({
   name = 'Dreamer',
   boardTitle = 'My Vision Board',
   cards = [],
+  screenshotUrl,
   dashboardUrl = 'http://localhost:3000/dashboard',
 }: BoardShareEmailProps) => (
   <Html>
@@ -61,6 +63,23 @@ export const BoardShareEmail = ({
           <Text style={boardBannerTitle}>{boardTitle}</Text>
           <Text style={boardBannerMeta}>{cards.length} card{cards.length !== 1 ? 's' : ''} on this board</Text>
         </Section>
+
+        {/* Board Screenshot — full-width image if captured */}
+        {screenshotUrl && (
+          <Section style={screenshotSection}>
+            <Img
+              src={screenshotUrl}
+              alt={`Vision Board: ${boardTitle}`}
+              style={screenshotImg}
+              width="540"
+            />
+          </Section>
+        )}
+
+        {/* Divider label before card list */}
+        {screenshotUrl && cards.length > 0 && (
+          <Text style={cardListLabel}>Card breakdown:</Text>
+        )}
 
         {cards.length === 0 ? (
           <Section style={emptyState}>
@@ -161,11 +180,31 @@ const cardContainer = {
   border: '1px solid rgba(0,0,0,0.06)',
 };
 
+const screenshotSection = {
+  margin: '0 0 28px',
+};
+
+const screenshotImg = {
+  width: '100%',
+  borderRadius: '14px',
+  border: '3px solid #c07423',
+  display: 'block',
+};
+
+const cardListLabel = {
+  fontSize: '13px',
+  fontWeight: 'bold',
+  color: '#78716c',
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.8px',
+  margin: '4px 0 10px',
+};
+
 const boardBanner = {
   backgroundColor: '#c07423',
   borderRadius: '12px',
   padding: '20px 24px',
-  margin: '16px 0 24px',
+  margin: '16px 0 20px',
 };
 
 const boardBannerTitle = {

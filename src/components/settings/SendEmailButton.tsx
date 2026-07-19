@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Mail, Check, AlertCircle, Loader2 } from 'lucide-react';
+import html2canvas from 'html2canvas';
 
 export default function SendEmailButton({ boardId }: { boardId?: string }) {
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
@@ -14,12 +15,51 @@ export default function SendEmailButton({ boardId }: { boardId?: string }) {
     setErrorMsg(null);
 
     try {
+      let screenshotUrl: string | undefined;
+
+      // ── 1. Find board-canvas element & capture screenshot if present ────────
+      const canvasElement = document.getElementById('board-canvas');
+      if (canvasElement) {
+        try {
+          // Temporarily disable transition classes/effects if needed (optional)
+          const canvas = await html2canvas(canvasElement, {
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: null,
+            logging: false,
+            scale: 1.5, // slightly better quality
+          });
+
+          const blob = await new Promise<Blob | null>((resolve) => 
+            canvas.toBlob(resolve, 'image/png')
+          );
+
+          if (blob) {
+            // Upload screenshot to Supabase Storage via our API endpoint
+            const uploadRes = await fetch('/api/email/upload-screenshot', {
+              method: 'POST',
+              body: blob,
+            });
+
+            if (uploadRes.ok) {
+              const { url } = await uploadRes.json();
+              screenshotUrl = url;
+            } else {
+              console.warn('[SendEmailButton] Screenshot upload failed, falling back to layout digest');
+            }
+          }
+        } catch (captureErr) {
+          console.error('[SendEmailButton] Failed to capture screenshot:', captureErr);
+        }
+      }
+
+      // ── 2. Request backend to send email ────────────────────────────────────
       const res = await fetch('/api/email/send-board', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ boardId }),
+        body: JSON.stringify({ boardId, screenshotUrl }),
       });
 
       if (!res.ok) {

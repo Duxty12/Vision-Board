@@ -47,6 +47,7 @@ export async function sendBoardShareEmail(
   name: string | undefined,
   boardTitle: string,
   cards: any[],
+  screenshotUrl?: string,
 ) {
   if (!resend) {
     console.warn('[Resend Client] Cannot send board email: RESEND_API_KEY is not configured.');
@@ -59,7 +60,7 @@ export async function sendBoardShareEmail(
       from: fromEmail,
       to,
       subject: `Your Vision Board: ${boardTitle}`,
-      react: React.createElement(BoardShareEmail, { name, boardTitle, cards, dashboardUrl }),
+      react: React.createElement(BoardShareEmail, { name, boardTitle, cards, screenshotUrl, dashboardUrl }),
     });
 
     if (error) {

@@ -6,14 +6,18 @@ export async function POST(req: Request) {
   try {
     const { userId, boardId: defaultBoardId, supabase } = await getAuthUserContext();
 
-    // ── 1. Read optional boardId from request body ────────────────────────────
+    // ── 1. Read optional boardId + screenshotUrl from request body ────────────
     let targetBoardId: string = defaultBoardId;
     let boardTitle = 'My Vision Board';
+    let screenshotUrl: string | undefined;
 
     try {
       const body = await req.json();
       if (body?.boardId) {
         targetBoardId = body.boardId;
+      }
+      if (body?.screenshotUrl) {
+        screenshotUrl = body.screenshotUrl;
       }
     } catch {
       // No body or not valid JSON — use defaults
@@ -74,6 +78,7 @@ export async function POST(req: Request) {
       user.name || undefined,
       boardTitle,
       cardsWithResolvedMedia,
+      screenshotUrl,
     );
 
     return NextResponse.json({ success: true });
