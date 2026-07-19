@@ -8,6 +8,8 @@ import {
   ChevronRight,
   Pin,
 } from 'lucide-react';
+import { currentUser } from '@clerk/nextjs/server';
+import SendEmailButton from '@/components/settings/SendEmailButton';
 
 export const metadata: Metadata = {
   title: 'Settings',
@@ -72,7 +74,16 @@ const BOARD_THEMES = [
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const clerkUser = await currentUser();
+  
+  const email = clerkUser?.emailAddresses[0]?.emailAddress ?? '';
+  const name = [clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(' ') || 'Dreamer';
+  const initial = (clerkUser?.firstName?.[0] || clerkUser?.lastName?.[0] || 'D').toUpperCase();
+  const memberSince = clerkUser 
+    ? new Date(clerkUser.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long' }) 
+    : '';
+
   return (
     <div className="p-6 max-w-2xl mx-auto">
 
@@ -87,14 +98,16 @@ export default function SettingsPage() {
         {/* User card */}
         <div className="px-6 py-5 flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-cork-500 flex items-center justify-center text-white text-xl font-bold font-display shadow-sticky shrink-0">
-            U
+            {initial}
           </div>
           <div>
-            <div className="font-display font-semibold text-stone-900">Your Name</div>
-            <div className="text-sm text-stone-400 font-sans">user@example.com</div>
-            <div className="text-xs text-stone-300 font-sans mt-0.5">
-              Member since — <span className="text-cork-500">Clerk profile synced here</span>
-            </div>
+            <div className="font-display font-semibold text-stone-900">{name}</div>
+            <div className="text-sm text-stone-400 font-sans">{email}</div>
+            {memberSince && (
+              <div className="text-xs text-stone-300 font-sans mt-0.5">
+                Member since — <span className="text-cork-500">{memberSince}</span>
+              </div>
+            )}
           </div>
         </div>
         <SettingsRow
@@ -140,19 +153,7 @@ export default function SettingsPage() {
           icon={Mail}
           label="Email me my board"
           description="Receive a snapshot of your starred cards"
-          action={
-            <button
-              id="email-board-btn"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold font-sans text-white transition-all duration-200 hover:opacity-90"
-              style={{
-                background: 'linear-gradient(135deg, #c07423, #d9902e)',
-                boxShadow: '0 2px 8px rgba(192,116,35,0.3)',
-              }}
-            >
-              <Mail size={12} />
-              Send now
-            </button>
-          }
+          action={<SendEmailButton />}
         />
       </SettingsSection>
 

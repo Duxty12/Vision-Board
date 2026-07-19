@@ -17,6 +17,7 @@ import {
   Quote,
   Target,
   CheckSquare,
+  Type,
 } from 'lucide-react';
 import type { CardWithRelations } from '@/lib/types';
 
@@ -135,8 +136,8 @@ export function CardExpandedView({
         >
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider font-sans px-2.5 py-1 rounded-full text-stone-700" style={{ background: 'rgba(0,0,0,0.08)' }}>
-              {cardTypeIcon[card.type]}
-              {card.type}
+              {card.attribution === 'board_text' ? <Type size={14} /> : cardTypeIcon[card.type]}
+              {card.attribution === 'board_text' ? 'text' : card.type}
             </span>
           </div>
 
@@ -181,13 +182,21 @@ export function CardExpandedView({
         <div className="px-8 pb-8 pt-2">
           {isQuote ? (
             <div className="text-center py-6">
-              <p className="font-serif italic text-2xl text-stone-900 leading-relaxed font-semibold mb-4">
-                &ldquo;{card.content || 'No quote content'}&rdquo;
-              </p>
-              {card.attribution && (
-                <p className="font-sans text-sm text-stone-600/80 font-bold tracking-wide">
-                  — {card.attribution}
+              {card.attribution === 'board_text' ? (
+                <p className="font-sans text-xl text-stone-900 leading-relaxed font-bold mb-4 whitespace-pre-wrap">
+                  {card.content || 'No text content'}
                 </p>
+              ) : (
+                <>
+                  <p className="font-serif italic text-2xl text-stone-900 leading-relaxed font-semibold mb-4">
+                    &ldquo;{card.content || 'No quote content'}&rdquo;
+                  </p>
+                  {card.attribution && (
+                    <p className="font-sans text-sm text-stone-600/80 font-bold tracking-wide">
+                      — {card.attribution}
+                    </p>
+                  )}
+                </>
               )}
             </div>
           ) : (

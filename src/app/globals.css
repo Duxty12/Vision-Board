@@ -167,18 +167,42 @@
     width: 3px;
   }
 
+  /* ─── Premium Wall & Frame ───────────────────────────────── */
+  .wall-backdrop {
+    background-color: #f2ede4;
+    background-image:
+      radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.6) 0%, transparent 70%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.015 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .wall-backdrop--dark {
+    background-color: #121318;
+    background-image:
+      radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
+  }
+
+  .board-frame {
+    border: 14px solid #2e1a0e;
+    border-radius: 20px;
+    box-shadow:
+      0 25px 50px -12px rgba(0, 0, 0, 0.45),
+      inset 0 1px 3px rgba(255, 255, 255, 0.2),
+      inset 0 -3px 6px rgba(0, 0, 0, 0.5),
+      0 2px 5px rgba(0,0,0,0.3);
+  }
+
   /* ─── Board Canvas ────────────────────────────────────── */
   .board-canvas {
-    @apply relative w-full min-h-screen overflow-hidden;
+    @apply relative w-full overflow-hidden;
     background-color: hsl(var(--board-bg));
   }
 
   .board-canvas--cork {
-    background-color: #c8894a;
+    background-color: #f7eed7;
     background-image:
-      radial-gradient(ellipse at 20% 30%, rgba(139,90,43,0.4) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 70%, rgba(160,110,60,0.3) 0%, transparent 50%),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Ccircle cx='2' cy='2' r='1' fill='%23a07040' fill-opacity='0.2'/%3E%3Ccircle cx='6' cy='6' r='.7' fill='%23805030' fill-opacity='0.15'/%3E%3Ccircle cx='2' cy='6' r='.5' fill='%23c09050' fill-opacity='0.12'/%3E%3C/svg%3E");
+      radial-gradient(circle at 50% 30%, rgba(255,255,255,0.4) 0%, transparent 80%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Ccircle cx='2' cy='2' r='0.8' fill='%23d0b898' fill-opacity='0.6'/%3E%3Ccircle cx='8' cy='8' r='1.2' fill='%23c0a880' fill-opacity='0.5'/%3E%3Ccircle cx='10' cy='3' r='0.6' fill='%23e0cca0' fill-opacity='0.7'/%3E%3Ccircle cx='3' cy='9' r='1' fill='%23b8a080' fill-opacity='0.45'/%3E%3C/svg%3E");
+    box-shadow: inset 0 0 30px rgba(0,0,0,0.06);
   }
 
   .board-canvas--linen {
@@ -188,14 +212,21 @@
       repeating-linear-gradient(90deg, transparent, transparent 24px, rgba(180,160,120,0.06) 24px, rgba(180,160,120,0.06) 25px);
   }
 
-  .board-canvas--gradient {
-    background: linear-gradient(135deg, #fdf4ff 0%, #fce7f3 20%, #eff6ff 45%, #f0fdf4 70%, #fefce8 100%);
+  .board-canvas--white {
+    background-color: #ffffff;
+    background-image:
+      linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
+    background-size: 20px 20px;
+    box-shadow: inset 0 0 24px rgba(0,0,0,0.03);
   }
 
   .board-canvas--dark {
-    background-color: #1a1c23;
-    background-image: radial-gradient(ellipse at 30% 20%, rgba(80,40,120,0.15) 0%, transparent 50%),
-      radial-gradient(ellipse at 70% 80%, rgba(40,80,120,0.1) 0%, transparent 50%);
+    background-color: #1a1b20;
+    background-image:
+      radial-gradient(circle at 50% 50%, rgba(255,255,255,0.015) 0%, transparent 80%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.6);
   }
 
   /* ─── Glass Card ──────────────────────────────────────── */
@@ -245,7 +276,7 @@
 
   /* ─── Featured Strip ──────────────────────────────────── */
   .featured-strip {
-    @apply flex gap-4 overflow-x-auto pb-2;
+    @apply flex gap-4 overflow-x-auto pt-4 pb-4 px-2;
     scrollbar-width: none;
   }
 

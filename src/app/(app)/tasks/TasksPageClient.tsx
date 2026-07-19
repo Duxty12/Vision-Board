@@ -425,6 +425,7 @@ export function TasksPageClient({ initialCards }: TasksPageClientProps) {
         onClose={() => setIsEditorOpen(false)}
         card={selectedCard}
         cardType="task"
+        allowedTypes={['task']}
       />
     </div>
   );

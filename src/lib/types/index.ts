@@ -7,7 +7,7 @@
 
 export type CardType = 'goal' | 'task' | 'image' | 'quote' | 'video';
 
-export type BoardTheme = 'cork' | 'linen' | 'gradient' | 'dark';
+export type BoardTheme = 'cork' | 'linen' | 'white' | 'dark';
 
 export type Priority = 'low' | 'medium' | 'high';
 
@@ -15,7 +15,7 @@ export type RecurrenceRule = 'daily' | 'weekly' | 'monthly';
 
 export type MediaType = 'image' | 'video';
 
-export type StickerType = 'star' | 'arrow' | 'tape' | 'flower' | 'heart';
+export type StickerType = 'star' | 'arrow' | 'tape' | 'flower' | 'heart' | 'smile' | 'sun' | 'pin' | 'sparkle' | 'cloud';
 
 // ─── Database Row Types ───────────────────────────────────────────────────────
 

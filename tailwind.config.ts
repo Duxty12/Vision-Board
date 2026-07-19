@@ -139,7 +139,7 @@ const config: Config = {
 
       // ─── Border Radius ────────────────────────────────────────────
       borderRadius: {
-        'sticky': '3px',
+        'sticky': '10px',
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',

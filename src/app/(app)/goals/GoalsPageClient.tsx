@@ -333,6 +333,7 @@ export function GoalsPageClient({ initialCards }: GoalsPageClientProps) {
         onClose={() => setIsEditorOpen(false)}
         card={selectedCard}
         cardType="goal"
+        allowedTypes={['goal']}
       />
     </div>
   );

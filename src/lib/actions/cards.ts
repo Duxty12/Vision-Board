@@ -156,6 +156,66 @@ export async function updateCard(id: string, input: UpdateCardInput): Promise<Ca
 }
 
 /**
+ * Fetch all cards for a specific board (for the canvas view).
+ * Ordered by z_index so layering is correct.
+ */
+export async function getBoardCards(boardId: string): Promise<CardWithRelations[]> {
+  try {
+    const { userId, supabase } = await getAuthUserContext();
+
+    const { data, error } = await supabase
+      .from('cards')
+      .select('*, subtasks(*), media(*)')
+      .eq('board_id', boardId)
+      .eq('user_id', userId)
+      .order('z_index', { ascending: true });
+
+    if (error) throw error;
+    return (data || []) as CardWithRelations[];
+  } catch (error) {
+    console.error(`Error fetching cards for board ${boardId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Update a card's canvas position and z_index (used by dnd-kit drag end).
+ * This is a lightweight action separate from the full card editor update.
+ */
+export async function updateCardPosition(
+  id: string,
+  position: { position_x: number; position_y: number; z_index?: number },
+): Promise<Card> {
+  try {
+    const { userId, supabase } = await getAuthUserContext();
+
+    const { data, error } = await supabase
+      .from('cards')
+      .update({
+        position_x: position.position_x,
+        position_y: position.position_y,
+        ...(position.z_index !== undefined ? { z_index: position.z_index } : {}),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Note: intentionally NOT calling revalidatePath('/dashboard') here.
+    // The client already applied an optimistic update; revalidating would
+    // push fresh server props and overwrite the local state (causing the
+    // visible position/size revert). The DB is updated correctly regardless.
+    return data as Card;
+  } catch (error) {
+    console.error(`Error updating card position ${id}:`, error);
+    throw error;
+  }
+}
+
+/**
  * Delete a card.
  */
 export async function deleteCard(id: string): Promise<void> {
@@ -269,6 +329,39 @@ export async function toggleCardStarred(id: string): Promise<CardWithRelations> 
     return data as CardWithRelations;
   } catch (error) {
     console.error(`Error toggling card starred ${id}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Update a card's dimensions (width and height), maintaining RLS.
+ */
+export async function updateCardDimensions(
+  id: string,
+  dimensions: { width: number; height: number }
+): Promise<Card> {
+  try {
+    const { userId, supabase } = await getAuthUserContext();
+
+    const { data, error } = await supabase
+      .from('cards')
+      .update({
+        width: dimensions.width,
+        height: dimensions.height,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Note: intentionally NOT calling revalidatePath('/dashboard') here.
+    // Same reason as updateCardPosition — client state is already correct.
+    return data as Card;
+  } catch (error) {
+    console.error(`Error updating card dimensions ${id}:`, error);
     throw error;
   }
 }

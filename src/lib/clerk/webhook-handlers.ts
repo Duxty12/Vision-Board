@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { sendWelcomeEmail } from '@/lib/resend/client';
 
 // ─── Clerk webhook event shape (minimal — only what we need) ──────────────────
 
@@ -84,4 +85,15 @@ export async function handleUserCreated(data: ClerkUserCreatedData): Promise<voi
   }
 
   console.log(`[Clerk webhook] ✅ Default board created for user: ${user.id}`);
+
+  // ── 4. Send Welcome Email via Resend ──────────────────────────────────────
+  try {
+    await sendWelcomeEmail(primaryEmail, name ?? undefined);
+    console.log(`[Clerk webhook] ✅ Welcome email sent to user: ${primaryEmail}`);
+  } catch (emailError: any) {
+    console.error(
+      `[Clerk webhook] ⚠️ Failed to send welcome email:`,
+      emailError.message || emailError,
+    );
+  }
 }

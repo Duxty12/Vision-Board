@@ -11,11 +11,18 @@ import { ImageDropzone } from '../media/ImageDropzone';
 import { VideoUrlInput } from '../media/VideoUrlInput';
 import { createMedia, deleteMedia } from '@/lib/actions/media';
 
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
+
 interface CardEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
   cardType?: CardType; // Default type for new cards
   card?: CardWithRelations | null; // Null if creating a new card
+  boardId?: string; // Optional: target board for new cards (overrides default)
+  onSaved?: (card: CardWithRelations) => void; // Optional: called after create/update
+  onDeleted?: (cardId: string) => void; // Optional: called after delete
+  allowedTypes?: CardType[];
+  isBoardText?: boolean;
 }
 
 interface LocalSubtask {
@@ -32,10 +39,16 @@ export function CardEditorModal({
   onClose,
   cardType = 'goal',
   card,
+  boardId,
+  onSaved,
+  onDeleted,
+  allowedTypes,
+  isBoardText = false,
 }: CardEditorModalProps) {
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
   // Form Fields
   const [type, setType] = useState<CardType>(cardType);
@@ -129,7 +142,8 @@ export function CardEditorModal({
             : null
         );
       } else {
-        setType(cardType);
+        const defaultType = allowedTypes && allowedTypes.length > 0 ? allowedTypes[0] : cardType;
+        setType(defaultType);
         setTitle('');
         setDescription('');
         setColor('#FFF3B0');
@@ -143,9 +157,8 @@ export function CardEditorModal({
         setRecurrenceRule('weekly');
         setSubtasks([]);
         originalSubtasksRef.current = [];
-
         setContent('');
-        setAttribution('');
+        setAttribution(isBoardText ? 'board_text' : '');
         setImageStoragePath(null);
         setVideoInfo(null);
         originalMediaRef.current = [];
@@ -218,7 +231,7 @@ export function CardEditorModal({
       // board_id is required by CreateCardInput but the server action will
       // override it with the user's default board when an empty string is passed.
       const cardInput = {
-        board_id: '',        // overridden in createCard server action
+        board_id: boardId || '', // use provided boardId, falls back to default in server action
         type,
         title: cardTitle,
         description: description || null,
@@ -322,6 +335,8 @@ export function CardEditorModal({
         }
       }
 
+      // Refetch the full saved card with relations for the callback
+      onSaved?.(savedCard as CardWithRelations);
       onClose();
     } catch (err: any) {
       console.error('Error saving card:', err);
@@ -332,14 +347,18 @@ export function CardEditorModal({
   };
 
   // Delete Card
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!card) return;
-    if (!confirm('Are you sure you want to delete this card?')) return;
+    setShowConfirmDelete(true);
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!card) return;
     setLoading(true);
     setError(null);
     try {
       await deleteCard(card.id);
+      onDeleted?.(card.id);
       onClose();
     } catch (err: any) {
       console.error('Error deleting card:', err);
@@ -357,7 +376,9 @@ export function CardEditorModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-stone-200">
           <h2 className="font-display text-lg font-bold text-stone-900">
-            {card ? `Edit ${type === 'goal' ? 'Goal' : 'Task'}` : `New ${type === 'goal' ? 'Goal' : 'Task'}`}
+            {card 
+              ? `Edit ${type === 'goal' ? 'Goal' : type === 'task' ? 'Task' : type === 'image' ? 'Image' : type === 'video' ? 'Video' : 'Text/Quote'}` 
+              : `New ${type === 'goal' ? 'Goal' : type === 'task' ? 'Task' : type === 'image' ? 'Image' : type === 'video' ? 'Video' : 'Text/Quote'}`}
           </h2>
           <button
             onClick={onClose}
@@ -416,10 +437,10 @@ export function CardEditorModal({
             </div>
           )}
 
-          {/* Type Toggle (Only for new cards) */}
-          {!card && (
+          {/* Type Toggle (Only for new cards and only if multiple types are allowed) */}
+          {!card && (!allowedTypes || allowedTypes.length > 1) && (
             <div className="flex flex-wrap gap-1 p-1 bg-stone-100 rounded-xl">
-              {(['goal', 'task', 'image', 'quote', 'video'] as CardType[]).map((t) => (
+              {(allowedTypes || (['goal', 'task', 'image', 'quote', 'video'] as CardType[])).map((t) => (
                 <button
                   key={t}
                   type="button"
@@ -428,7 +449,7 @@ export function CardEditorModal({
                   }`}
                   onClick={() => setType(t)}
                 >
-                  {t}
+                  {t === 'quote' ? 'Text / Quote' : t}
                 </button>
               ))}
             </div>
@@ -477,36 +498,38 @@ export function CardEditorModal({
             </div>
           )}
 
-          {/* Quote Fields */}
+          {/* Quote / Text Fields */}
           {type === 'quote' && (
             <div className="space-y-4 animate-[fade-in_0.2s_ease-out]">
               <div className="space-y-1.5">
                 <label htmlFor="quote-text" className="text-xs font-bold font-sans text-stone-700 uppercase tracking-wider">
-                  Quote Text
+                  {isBoardText ? 'Board Text Content' : 'Text / Quote Content'}
                 </label>
                 <textarea
                   id="quote-text"
                   required
                   rows={4}
-                  placeholder="Type or paste the quote text..."
+                  placeholder={isBoardText ? 'Type text to write directly on the board...' : 'Type or paste text or quote...'}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white placeholder:text-stone-400 text-stone-850 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-cork-400 focus:border-transparent transition-all duration-200 font-serif italic"
+                  className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white placeholder:text-stone-400 text-stone-850 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-cork-400 focus:border-transparent transition-all duration-200 font-sans"
                 />
               </div>
-              <div className="space-y-1.5">
-                <label htmlFor="quote-author" className="text-xs font-bold font-sans text-stone-700 uppercase tracking-wider">
-                  Attribution (Author)
-                </label>
-                <input
-                  id="quote-author"
-                  type="text"
-                  placeholder="e.g. Maya Angelou"
-                  value={attribution}
-                  onChange={(e) => setAttribution(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white placeholder:text-stone-400 text-stone-800 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-cork-400 focus:border-transparent transition-all duration-200"
-                />
-              </div>
+              {!isBoardText && (
+                <div className="space-y-1.5">
+                  <label htmlFor="quote-author" className="text-xs font-bold font-sans text-stone-700 uppercase tracking-wider">
+                    Attribution / Author (Optional, leave blank for plain text note)
+                  </label>
+                  <input
+                    id="quote-author"
+                    type="text"
+                    placeholder="e.g. Maya Angelou"
+                    value={attribution}
+                    onChange={(e) => setAttribution(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white placeholder:text-stone-400 text-stone-855 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-cork-400 focus:border-transparent transition-all duration-200"
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -554,12 +577,14 @@ export function CardEditorModal({
           )}
 
           {/* Color Picker */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold font-sans text-stone-700 uppercase tracking-wider">
-              Card Color
-            </label>
-            <ColorPicker selectedColor={color} onChange={setColor} />
-          </div>
+          {!isBoardText && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold font-sans text-stone-700 uppercase tracking-wider">
+                Card Color
+              </label>
+              <ColorPicker selectedColor={color} onChange={setColor} />
+            </div>
+          )}
 
           {/* ── Goal Fields ── */}
           {type === 'goal' && (
@@ -833,6 +858,18 @@ export function CardEditorModal({
             </button>
           </div>
         </div>
+
+        {/* Custom Confirmation Dialog for Card Deletion */}
+        <ConfirmModal
+          isOpen={showConfirmDelete}
+          onClose={() => setShowConfirmDelete(false)}
+          onConfirm={handleDeleteConfirm}
+          title="Delete Card"
+          message="Are you sure you want to delete this card? This action cannot be undone."
+          confirmText="Delete"
+          cancelText="Cancel"
+          isDestructive={true}
+        />
 
       </div>
     </div>,
