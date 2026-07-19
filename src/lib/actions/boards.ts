@@ -141,6 +141,17 @@ export async function updateBoard(id: string, input: UpdateBoardInput): Promise<
   try {
     const { userId, supabase } = await getAuthUserContext();
 
+    if (input.is_default === true) {
+      // Unset default flag on all other boards for the current user
+      const { error: unsetError } = await supabase
+        .from('boards')
+        .update({ is_default: false })
+        .eq('user_id', userId)
+        .neq('id', id);
+
+      if (unsetError) throw unsetError;
+    }
+
     const { data, error } = await supabase
       .from('boards')
       .update(input)

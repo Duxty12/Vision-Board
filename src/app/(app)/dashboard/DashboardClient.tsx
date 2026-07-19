@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState, useTransition, useMemo, useEffect } from 'react';
-import { Star, Sparkles, Eye, Edit3, FolderOpen, Pin, X, Maximize2, Check } from 'lucide-react';
+import { Star, Sparkles, Eye, Edit3, FolderOpen, Pin, X, Maximize2, Check, ChevronDown, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import type { Board, CardWithRelations, Sticker, CardType, StickerType, BoardTheme } from '@/lib/types';
+import Link from 'next/link';
+import type { Board, CardWithRelations, Sticker, CardType, StickerType, BoardTheme, BoardWithCount } from '@/lib/types';
 import { BoardCanvas } from '@/components/board/BoardCanvas';
 import { FeaturedStrip } from '@/components/board/FeaturedStrip';
+import { FeaturedBoardsStrip } from '@/components/board/FeaturedBoardsStrip';
 import { QuickAddMenu } from '@/components/board/QuickAddMenu';
 import { ThemeSwitcher } from '@/components/board/ThemeSwitcher';
 import { CardEditorModal } from '@/components/cards/CardEditorModal';
@@ -20,6 +22,10 @@ interface DashboardClientProps {
   initialCards: CardWithRelations[];
   initialStickers: Sticker[];
   starredCards: CardWithRelations[];
+  allUserCards?: CardWithRelations[];
+  boards?: BoardWithCount[];
+  starredBoards?: BoardWithCount[];
+  backLink?: string;
 }
 
 type BoardSize = 'compact' | 'standard' | 'large' | 'widescreen' | 'portrait-sm' | 'portrait-lg' | 'tall';
@@ -39,8 +45,13 @@ export function DashboardClient({
   initialCards,
   initialStickers,
   starredCards: initialStarredCards,
+  allUserCards,
+  boards,
+  starredBoards,
+  backLink,
 }: DashboardClientProps) {
   const router = useRouter();
+  const [boardDropdownOpen, setBoardDropdownOpen] = useState(false);
   const [cards, setCards] = useState<CardWithRelations[]>(initialCards);
   const [stickers, setStickers] = useState<Sticker[]>(initialStickers);
   const [starredCards, setStarredCards] = useState<CardWithRelations[]>(initialStarredCards);
@@ -86,6 +97,8 @@ export function DashboardClient({
   }, [initialCards]);
   React.useEffect(() => { setStickers(initialStickers); }, [initialStickers]);
   React.useEffect(() => { setStarredCards(initialStarredCards); }, [initialStarredCards]);
+  // ── Sync theme when switching to a different board ─────────────────────────
+  React.useEffect(() => { setCurrentTheme(board.theme); }, [board.id, board.theme]);
 
   // Load board size preference from localStorage
   useEffect(() => {
@@ -111,9 +124,16 @@ export function DashboardClient({
     return cards.filter((c) => c.position_x > 0 || c.position_y > 0);
   }, [cards]);
 
+  // Unpinned: board-specific unpinned + all user goals/tasks not already in board
   const unpinnedCards = useMemo(() => {
-    return cards.filter((c) => c.position_x === 0 && c.position_y === 0);
-  }, [cards]);
+    const boardCardIds = new Set(cards.map((c) => c.id));
+    const boardUnpinned = cards.filter((c) => c.position_x === 0 && c.position_y === 0);
+    // Merge in user-wide goal/task cards that don't belong to this board canvas
+    const crossBoardCards = (allUserCards || []).filter(
+      (c) => !boardCardIds.has(c.id) && (c.type === 'goal' || c.type === 'task')
+    );
+    return [...boardUnpinned, ...crossBoardCards];
+  }, [cards, allUserCards]);
 
   const handleCardClick = (card: CardWithRelations) => {
     setSelectedCard(card);
@@ -312,11 +332,63 @@ export function DashboardClient({
       
       {/* ── Top Sleek Toolbar ────────────────────────────────────────── */}
       <div className="max-w-6xl mx-auto px-6 pt-6 flex items-center justify-between z-20 relative">
-        <div className="flex items-center gap-2">
-          <Sparkles size={16} className="text-amber-500 animate-[wiggle_4s_ease-in-out_infinite]" />
-          <h2 className="font-display font-bold text-stone-850 dark:text-white/80 leading-none">
-            {board.title}
-          </h2>
+        <div className="flex items-center gap-3">
+          {backLink && (
+            <Link
+              href={backLink}
+              id="back-to-boards"
+              className="inline-flex items-center gap-1.5 text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-white text-xs font-semibold font-sans transition-colors duration-200 group mr-2"
+            >
+              <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
+              <span>Boards</span>
+            </Link>
+          )}
+
+          <div className="flex items-center gap-2">
+            <Sparkles size={16} className="text-amber-500 animate-[wiggle_4s_ease-in-out_infinite] shrink-0" />
+            
+            {boards && boards.length > 0 ? (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setBoardDropdownOpen((v) => !v)}
+                  className="font-display font-bold text-stone-855 dark:text-white/80 leading-none flex items-center gap-1.5 hover:text-stone-900 dark:hover:text-white transition-colors cursor-pointer text-sm sm:text-base"
+                >
+                  <span className="truncate max-w-[120px] sm:max-w-[200px]">{board.title}</span>
+                  <ChevronDown size={14} className={`transition-transform duration-200 shrink-0 ${boardDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {boardDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setBoardDropdownOpen(false)} />
+                    <div className="absolute left-0 top-full mt-2 z-50 bg-white dark:bg-[#1f2026] border border-stone-200 dark:border-[#383a45] rounded-xl shadow-glass p-2 min-w-[200px] animate-slide-up">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400 dark:text-stone-500 px-2 pb-1.5 font-sans">Switch Vision Board</p>
+                      {boards.map((b) => (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => {
+                            setBoardDropdownOpen(false);
+                            router.push(backLink ? `/collections/${b.id}` : `/dashboard?boardId=${b.id}`);
+                          }}
+                          className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors text-xs font-sans font-semibold text-stone-700 dark:text-stone-300 text-left cursor-pointer"
+                        >
+                          <span className="truncate pr-2">{b.title}</span>
+                          {b.id === board.id && (
+                            <Check size={12} className="text-amber-600 shrink-0" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <h2 className="font-display font-bold text-stone-850 dark:text-white/80 leading-none text-sm sm:text-base">
+                {board.title}
+              </h2>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -400,6 +472,19 @@ export function DashboardClient({
           </div>
         </div>
       </div>
+
+      {/* ── Featured Boards Strip ── */}
+      {starredBoards && starredBoards.length > 0 && !backLink && (
+        <section className="max-w-6xl mx-auto px-6 mt-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Star size={11} className="text-amber-500 fill-amber-500 shrink-0" />
+            <h3 className="text-[10px] font-bold text-stone-700/80 dark:text-white/60 font-sans tracking-widest uppercase">
+              Featured boards
+            </h3>
+          </div>
+          <FeaturedBoardsStrip boards={starredBoards} />
+        </section>
+      )}
 
       {/* ── Distinct Wooden Framed Board Container ─────────────────────── */}
       <div className={`relative mx-auto ${activePreset.widthClass} px-4 mt-6 transition-all duration-300`}>

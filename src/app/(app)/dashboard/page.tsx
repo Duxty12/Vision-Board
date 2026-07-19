@@ -1,6 +1,6 @@
-﻿import type { Metadata } from 'next';
-import { Star, Sparkles } from 'lucide-react';
-import { getDefaultBoard } from '@/lib/actions/boards';
+import type { Metadata } from 'next';
+import { Sparkles } from 'lucide-react';
+import { getDefaultBoard, getBoard, getUserBoards, getStarredBoards } from '@/lib/actions/boards';
 import { getBoardCards, getCards } from '@/lib/actions/cards';
 import { getBoardStickers } from '@/lib/actions/stickers';
 import { DashboardClient } from './DashboardClient';
@@ -10,22 +10,39 @@ export const metadata: Metadata = {
   description: 'Your personal vision board — pin goals, tasks, quotes, and media on your freeform canvas.',
 };
 
-export default async function DashboardPage() {
-  // ── Fetch data ────────────────────────────────────────────────────────────
-  const [defaultBoard, starredCards] = await Promise.all([
-    getDefaultBoard().catch(() => null),
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: { boardId?: string };
+}) {
+  const boardId = searchParams?.boardId;
+
+  // ── Fetch active board ───────────────────────────────────────────────────
+  let activeBoard = null;
+  if (boardId) {
+    activeBoard = await getBoard(boardId).catch(() => null);
+  }
+  if (!activeBoard) {
+    activeBoard = await getDefaultBoard().catch(() => null);
+  }
+
+  // ── Fetch other lists ─────────────────────────────────────────────────────
+  const [boards, starredBoards, starredCards, allUserCards] = await Promise.all([
+    getUserBoards().catch(() => []),
+    getStarredBoards().catch(() => []),
     getCards({ is_starred: true }).catch(() => []),
+    getCards().catch(() => []),       // all user cards across all boards (goals, tasks, etc.)
   ]);
 
-  const [boardCards, stickers] = defaultBoard
+  const [boardCards, stickers] = activeBoard
     ? await Promise.all([
-        getBoardCards(defaultBoard.id).catch(() => []),
-        getBoardStickers(defaultBoard.id).catch(() => []),
+        getBoardCards(activeBoard.id).catch(() => []),
+        getBoardStickers(activeBoard.id).catch(() => []),
       ])
     : [[], []];
 
-  // ── Empty-board state (no default board at all) ───────────────────────────
-  if (!defaultBoard) {
+  // ── Empty-board state (no active board at all) ───────────────────────────
+  if (!activeBoard) {
     return (
       <div className="relative min-h-[calc(100vh-60px)] board-canvas board-canvas--cork flex items-center justify-center">
         <div className="text-center glass-card p-10 rounded-2xl max-w-sm mx-auto">
@@ -46,10 +63,13 @@ export default async function DashboardPage() {
 
   return (
     <DashboardClient
-      board={defaultBoard}
+      board={activeBoard}
       initialCards={boardCards}
       initialStickers={stickers}
       starredCards={starredCards}
+      allUserCards={allUserCards}
+      boards={boards}
+      starredBoards={starredBoards}
     />
   );
 }
