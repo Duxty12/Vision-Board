@@ -107,6 +107,7 @@ export function ImageDropzone({
     if (e.target.files && e.target.files[0]) {
       await uploadFile(e.target.files[0]);
     }
+    e.target.value = '';
   };
 
   const triggerFileInput = () => {
@@ -115,6 +116,14 @@ export function ImageDropzone({
 
   return (
     <div className="w-full font-sans">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileInputChange}
+        className="hidden"
+      />
+
       {error && (
         <div className="mb-2 bg-rose-50 text-rose-600 px-3 py-2 rounded-xl border border-rose-100 text-xs flex items-center gap-1.5 animate-[fade-in_0.2s_ease-out]">
           <AlertCircle size={14} className="shrink-0" />
@@ -133,7 +142,7 @@ export function ImageDropzone({
             <button
               type="button"
               onClick={triggerFileInput}
-              className="px-3 py-1.5 bg-white/95 text-stone-700 rounded-lg text-xs font-bold shadow hover:bg-white transition-all flex items-center gap-1"
+              className="px-3 py-1.5 bg-white/95 text-stone-700 rounded-lg text-xs font-bold shadow hover:bg-white transition-all flex items-center gap-1 cursor-pointer"
             >
               <UploadCloud size={14} />
               Replace
@@ -141,7 +150,7 @@ export function ImageDropzone({
             <button
               type="button"
               onClick={onRemove}
-              className="p-1.5 bg-rose-600 text-white rounded-lg text-xs font-bold shadow hover:bg-rose-750 transition-all flex items-center justify-center"
+              className="p-1.5 bg-rose-600 text-white rounded-lg text-xs font-bold shadow hover:bg-rose-750 transition-all flex items-center justify-center cursor-pointer"
               title="Delete image"
             >
               <Trash2 size={15} />
@@ -161,14 +170,6 @@ export function ImageDropzone({
               : 'border-stone-200 hover:border-stone-300 hover:bg-stone-50/40 bg-white'
           }`}
         >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileInputChange}
-            className="hidden"
-          />
-
           {isUploading ? (
             <div className="flex flex-col items-center justify-center gap-3">
               <Loader2 size={32} className="text-cork-500 animate-spin" />

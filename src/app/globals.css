@@ -182,8 +182,10 @@
   }
 
   .board-frame {
-    border: 14px solid #2e1a0e;
-    border-radius: 20px;
+    @apply relative z-0 overflow-hidden;
+    isolation: isolate;
+    border: 8px solid #2e1a0e;
+    border-radius: 12px;
     box-shadow:
       0 25px 50px -12px rgba(0, 0, 0, 0.45),
       inset 0 1px 3px rgba(255, 255, 255, 0.2),
@@ -191,9 +193,17 @@
       0 2px 5px rgba(0,0,0,0.3);
   }
 
+  @media (min-width: 640px) {
+    .board-frame {
+      border-width: 14px;
+      border-radius: 20px;
+    }
+  }
+
   /* ─── Board Canvas ────────────────────────────────────── */
   .board-canvas {
-    @apply relative w-full overflow-hidden;
+    @apply relative z-0 w-full overflow-hidden;
+    isolation: isolate;
     background-color: hsl(var(--board-bg));
   }
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Plus, Trash2, Calendar, Flag, RotateCcw, AlertCircle, Play, Youtube } from 'lucide-react';
+import { X, Plus, Trash2, Calendar, Flag, RotateCcw, AlertCircle, Play, Youtube, Check } from 'lucide-react';
 import type { CardWithRelations, CardType, Priority, RecurrenceRule, Media } from '@/lib/types';
 import { ColorPicker } from './ColorPicker';
 import { createCard, updateCard, deleteCard } from '@/lib/actions/cards';
@@ -33,6 +33,24 @@ interface LocalSubtask {
 }
 
 const CATEGORIES = ['Career', 'Health', 'Travel', 'Home', 'Relationships', 'Other'];
+
+const BOARD_TEXT_FONTS = [
+  { value: 'handwriting', label: 'Cozy Handwriting', fontClass: 'font-handwriting' },
+  { value: 'display',     label: 'Display Header',   fontClass: 'font-display font-bold' },
+  { value: 'serif',       label: 'Classic Serif',     fontClass: 'font-serif italic' },
+  { value: 'sans',        label: 'Modern Sans',       fontClass: 'font-sans font-bold' },
+] as const;
+
+const BOARD_TEXT_COLORS = [
+  { hex: '#1e293b', label: 'Slate Dark',   bg: 'bg-[#1e293b]' },
+  { hex: '#dc2626', label: 'Crimson Red',  bg: 'bg-[#dc2626]' },
+  { hex: '#d97706', label: 'Warm Amber',   bg: 'bg-[#d97706]' },
+  { hex: '#16a34a', label: 'Emerald Green', bg: 'bg-[#16a34a]' },
+  { hex: '#2563eb', label: 'Royal Blue',   bg: 'bg-[#2563eb]' },
+  { hex: '#7c3aed', label: 'Deep Violet',  bg: 'bg-[#7c3aed]' },
+  { hex: '#db2777', label: 'Hot Pink',     bg: 'bg-[#db2777]' },
+  { hex: '#ffffff', label: 'Chalk White',  bg: 'bg-white border border-stone-300' },
+] as const;
 
 export function CardEditorModal({
   isOpen,
@@ -103,10 +121,13 @@ export function CardEditorModal({
         setType(card.type);
         setTitle(card.title || '');
         setDescription(card.description || '');
-        setColor(card.color || '#FFF3B0');
-        setIsCompleted(card.is_completed);
-        setIsStarred(card.is_starred);
-        setCategory(card.category || 'Career');
+        if (card.attribution === 'board_text' || isBoardText) {
+          setColor(card.color && card.color.startsWith('#') && card.color !== '#FFF3B0' ? card.color : '#1e293b');
+          setCategory(card.category || 'handwriting');
+        } else {
+          setColor(card.color || '#FFF3B0');
+          setCategory(card.category || 'Career');
+        }
         setTargetYear(card.target_year || new Date().getFullYear());
         setPriority(card.priority || 'medium');
         setDueDate(card.due_date ? card.due_date.split('T')[0] : '');
@@ -146,10 +167,17 @@ export function CardEditorModal({
         setType(defaultType);
         setTitle('');
         setDescription('');
-        setColor('#FFF3B0');
         setIsCompleted(false);
         setIsStarred(false);
-        setCategory('Career');
+        if (isBoardText) {
+          setColor('#1e293b');
+          setCategory('handwriting');
+          setAttribution('board_text');
+        } else {
+          setColor('#FFF3B0');
+          setCategory('Career');
+          setAttribution('');
+        }
         setTargetYear(new Date().getFullYear());
         setPriority('medium');
         setDueDate('');
@@ -158,7 +186,6 @@ export function CardEditorModal({
         setSubtasks([]);
         originalSubtasksRef.current = [];
         setContent('');
-        setAttribution(isBoardText ? 'board_text' : '');
         setImageStoragePath(null);
         setVideoInfo(null);
         originalMediaRef.current = [];
@@ -236,11 +263,11 @@ export function CardEditorModal({
         title: cardTitle,
         description: description || null,
         content: type === 'quote' ? content : null,
-        attribution: type === 'quote' ? attribution : null,
+        attribution: type === 'quote' ? (isBoardText ? 'board_text' : attribution) : null,
         color,
         is_completed: isCompleted,
         is_starred: isStarred,
-        category: type === 'goal' ? category : null,
+        category: type === 'goal' || type === 'quote' ? category : null,
         target_year: type === 'goal' ? targetYear : null,
         priority: type === 'task' ? priority : null,
         due_date: type === 'task' && dueDate ? dueDate : null,
@@ -369,7 +396,7 @@ export function CardEditorModal({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm transition-all duration-300">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm transition-all duration-300">
       {/* Modal Card */}
       <div className="bg-[#fafaf8] border border-stone-200/80 shadow-2xl rounded-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col animate-[slide-up_0.3s_ease-out]">
         
@@ -503,19 +530,80 @@ export function CardEditorModal({
             <div className="space-y-4 animate-[fade-in_0.2s_ease-out]">
               <div className="space-y-1.5">
                 <label htmlFor="quote-text" className="text-xs font-bold font-sans text-stone-700 uppercase tracking-wider">
-                  {isBoardText ? 'Board Text Content' : 'Text / Quote Content'}
+                  {isBoardText || attribution === 'board_text' ? 'Board Text Content' : 'Text / Quote Content'}
                 </label>
                 <textarea
                   id="quote-text"
                   required
                   rows={4}
-                  placeholder={isBoardText ? 'Type text to write directly on the board...' : 'Type or paste text or quote...'}
+                  placeholder={isBoardText || attribution === 'board_text' ? 'Type text to write directly on the board...' : 'Type or paste text or quote...'}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white placeholder:text-stone-400 text-stone-850 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-cork-400 focus:border-transparent transition-all duration-200 font-sans"
+                  className={`w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white placeholder:text-stone-400 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all duration-200 ${
+                    (isBoardText || attribution === 'board_text')
+                      ? category === 'sans' ? 'font-sans font-bold'
+                        : category === 'serif' ? 'font-serif italic'
+                        : category === 'display' ? 'font-display font-bold'
+                        : 'font-handwriting text-lg'
+                      : 'font-sans text-stone-850'
+                  }`}
+                  style={(isBoardText || attribution === 'board_text') ? { color: color && color.startsWith('#') && color !== '#FFF3B0' ? color : '#1e293b' } : undefined}
                 />
               </div>
-              {!isBoardText && (
+
+              {/* Board Text Font & Color Controls */}
+              {(isBoardText || attribution === 'board_text') && (
+                <div className="space-y-4 pt-2 border-t border-stone-200/70 animate-[fade-in_0.2s_ease-out]">
+                  {/* Font Picker */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold font-sans text-stone-700 uppercase tracking-wider">
+                      Font Style
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {BOARD_TEXT_FONTS.map((f) => (
+                        <button
+                          key={f.value}
+                          type="button"
+                          onClick={() => setCategory(f.value)}
+                          className={`px-3 py-2 rounded-xl border text-xs text-center transition-all cursor-pointer ${
+                            category === f.value
+                              ? 'border-amber-600 bg-amber-50 text-amber-900 font-bold shadow-xs ring-1 ring-amber-500'
+                              : 'border-stone-200 bg-white text-stone-700 hover:bg-stone-50'
+                          }`}
+                        >
+                          <span className={`${f.fontClass} block truncate`}>{f.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Text Color Picker */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold font-sans text-stone-700 uppercase tracking-wider">
+                      Text Color
+                    </label>
+                    <div className="flex flex-wrap gap-2.5 items-center">
+                      {BOARD_TEXT_COLORS.map((c) => (
+                        <button
+                          key={c.hex}
+                          type="button"
+                          onClick={() => setColor(c.hex)}
+                          title={c.label}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform cursor-pointer ${c.bg} ${
+                            color === c.hex ? 'scale-115 ring-2 ring-amber-500 ring-offset-2 shadow-md' : 'hover:scale-105 opacity-90'
+                          }`}
+                        >
+                          {color === c.hex && (
+                            <Check size={14} className={c.hex === '#ffffff' ? 'text-stone-800' : 'text-white'} />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!isBoardText && attribution !== 'board_text' && (
                 <div className="space-y-1.5">
                   <label htmlFor="quote-author" className="text-xs font-bold font-sans text-stone-700 uppercase tracking-wider">
                     Attribution / Author (Optional, leave blank for plain text note)

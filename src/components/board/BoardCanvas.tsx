@@ -340,18 +340,36 @@ export function BoardCanvas({
   }, [cards]);
 
   const handleStickerMove = useCallback((id: string, x: number, y: number) => {
-    setStickers((prev) => prev.map((s) => s.id === id ? { ...s, position_x: x, position_y: y } : s));
-    void (async () => { try { await updateSticker(id, { position_x: x, position_y: y }); } catch {} })();
-  }, []);
+    let nextZIndex = 1;
+    setStickers((prev) => {
+      const maxCardZ = cards.reduce((max, c) => Math.max(max, c.z_index || 1), 1);
+      const maxStickerZ = prev.reduce((max, s) => Math.max(max, s.z_index || 1), 1);
+      nextZIndex = Math.max(maxCardZ, maxStickerZ, 1) + 1;
+      return prev.map((s) => (s.id === id ? { ...s, position_x: x, position_y: y, z_index: nextZIndex } : s));
+    });
+    void (async () => {
+      try {
+        await updateSticker(id, { position_x: x, position_y: y, z_index: nextZIndex });
+      } catch {}
+    })();
+  }, [cards]);
 
   const handleStickerRotate = useCallback((id: string, rotation: number) => {
-    setStickers((prev) => prev.map((s) => s.id === id ? { ...s, rotation } : s));
-    void (async () => { try { await updateSticker(id, { rotation }); } catch {} })();
+    setStickers((prev) => prev.map((s) => (s.id === id ? { ...s, rotation } : s)));
+    void (async () => {
+      try {
+        await updateSticker(id, { rotation });
+      } catch {}
+    })();
   }, []);
 
   const handleStickerScale = useCallback((id: string, scale: number) => {
-    setStickers((prev) => prev.map((s) => s.id === id ? { ...s, scale } : s));
-    void (async () => { try { await updateSticker(id, { scale }); } catch {} })();
+    setStickers((prev) => prev.map((s) => (s.id === id ? { ...s, scale } : s)));
+    void (async () => {
+      try {
+        await updateSticker(id, { scale });
+      } catch {}
+    })();
   }, []);
 
   const handleDeleteSticker = useCallback((id: string) => {
@@ -371,8 +389,8 @@ export function BoardCanvas({
         ref={canvasRef}
         id="board-canvas"
         data-theme={board.theme}
-        className={`board-canvas ${themeClass[board.theme]} relative overflow-hidden ${className}`}
-        style={{ minHeight: '750px', ...style }}
+        className={`board-canvas ${themeClass[board.theme]} relative z-0 overflow-hidden isolate ${className}`}
+        style={{ minHeight: '750px', isolation: 'isolate', ...style }}
       >
         {/* Stickers layer */}
         <StickerLayer

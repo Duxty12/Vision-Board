@@ -160,7 +160,12 @@ export function DashboardClient({
         next[idx] = savedCard;
         return next;
       }
-      return [...prev, savedCard];
+      // Calculate top z_index for new card
+      const maxCardZ = prev.reduce((max, c) => Math.max(max, c.z_index || 1), 1);
+      const maxStickerZ = stickers.reduce((max, s) => Math.max(max, s.z_index || 1), 1);
+      const topZ = Math.max(maxCardZ, maxStickerZ, savedCard.z_index || 1, 1) + 1;
+      const cardWithTopZ = { ...savedCard, z_index: Math.max(savedCard.z_index || 1, topZ) };
+      return [...prev, cardWithTopZ];
     });
     // sync starred
     if (savedCard.is_starred) {
@@ -293,12 +298,16 @@ export function DashboardClient({
   const handlePinCard = (id: string) => {
     const rx = 100 + Math.random() * 300;
     const ry = 100 + Math.random() * 250;
-    setCards((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, position_x: rx, position_y: ry } : c)),
-    );
+    let nextZIndex = 1;
+    setCards((prev) => {
+      const maxCardZ = prev.reduce((max, c) => Math.max(max, c.z_index || 1), 1);
+      const maxStickerZ = stickers.reduce((max, s) => Math.max(max, s.z_index || 1), 1);
+      nextZIndex = Math.max(maxCardZ, maxStickerZ, 1) + 1;
+      return prev.map((c) => (c.id === id ? { ...c, position_x: rx, position_y: ry, z_index: nextZIndex } : c));
+    });
     void (async () => {
       try {
-        await updateCardPosition(id, { position_x: rx, position_y: ry });
+        await updateCardPosition(id, { position_x: rx, position_y: ry, z_index: nextZIndex });
       } catch {
         setCards((prev) =>
           prev.map((c) => (c.id === id ? { ...c, position_x: 0, position_y: 0 } : c)),
@@ -331,7 +340,7 @@ export function DashboardClient({
     <div className="relative min-h-screen wall-backdrop pb-16 transition-colors duration-300">
       
       {/* ── Top Sleek Toolbar ────────────────────────────────────────── */}
-      <div className="max-w-6xl mx-auto px-6 pt-6 flex items-center justify-between z-20 relative">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 flex flex-wrap items-center justify-between gap-3 z-20 relative">
         <div className="flex items-center gap-3">
           {backLink && (
             <Link

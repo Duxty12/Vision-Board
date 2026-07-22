@@ -115,48 +115,59 @@ function StickerItem({ sticker, isEditMode, onMove, onRotate, onScale, onDelete,
   const ref = useRef<HTMLDivElement>(null);
   const dragStart = useRef<{ mouseX: number; mouseY: number; posX: number; posY: number; hasMoved: boolean } | null>(null);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const handleMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (!isEditMode) return;
     if ((e.target as HTMLElement).closest('[data-control]')) return;
-    e.preventDefault();
-    e.stopPropagation();
     onBringToFront?.(sticker.id);
-    setIsDragging(true);
-    dragStart.current = { mouseX: e.clientX, mouseY: e.clientY, posX: sticker.position_x, posY: sticker.position_y, hasMoved: false };
 
-    const onMouseMove = (ev: MouseEvent) => {
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+    setIsDragging(true);
+    dragStart.current = { mouseX: clientX, mouseY: clientY, posX: sticker.position_x, posY: sticker.position_y, hasMoved: false };
+
+    const onMoveEvent = (ev: MouseEvent | TouchEvent) => {
       if (!dragStart.current) return;
-      const dx = ev.clientX - dragStart.current.mouseX;
-      const dy = ev.clientY - dragStart.current.mouseY;
+      const curX = 'touches' in ev ? ev.touches[0].clientX : ev.clientX;
+      const curY = 'touches' in ev ? ev.touches[0].clientY : ev.clientY;
+      const dx = curX - dragStart.current.mouseX;
+      const dy = curY - dragStart.current.mouseY;
       if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
         dragStart.current.hasMoved = true;
         setIsSelected(true);
       }
-      onMove(sticker.id, dragStart.current.posX + dx, dragStart.current.posY + dy);
+      onMove(sticker.id, Math.max(0, dragStart.current.posX + dx), Math.max(0, dragStart.current.posY + dy));
     };
-    const onMouseUp = () => {
+    const onEndEvent = () => {
       setIsDragging(false);
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('mousemove', onMoveEvent);
+      window.removeEventListener('mouseup', onEndEvent);
+      window.removeEventListener('touchmove', onMoveEvent);
+      window.removeEventListener('touchend', onEndEvent);
     };
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('mousemove', onMoveEvent);
+    window.addEventListener('mouseup', onEndEvent);
+    window.addEventListener('touchmove', onMoveEvent, { passive: false });
+    window.addEventListener('touchend', onEndEvent);
   }, [sticker, onMove, isEditMode, onBringToFront]);
 
   const handleRotate = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
+    onBringToFront?.(sticker.id);
     onRotate(sticker.id, (sticker.rotation + 15) % 360);
-  }, [sticker, onRotate]);
+  }, [sticker, onRotate, onBringToFront]);
 
   const handleScaleUp = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
+    onBringToFront?.(sticker.id);
     onScale(sticker.id, Math.min(sticker.scale + 0.25, 4));
-  }, [sticker, onScale]);
+  }, [sticker, onScale, onBringToFront]);
 
   const handleScaleDown = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
+    onBringToFront?.(sticker.id);
     onScale(sticker.id, Math.max(sticker.scale - 0.25, 0.5));
-  }, [sticker, onScale]);
+  }, [sticker, onScale, onBringToFront]);
 
   const handleDelete = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -174,13 +185,17 @@ function StickerItem({ sticker, isEditMode, onMove, onRotate, onScale, onDelete,
   // Close sticker menu on click outside
   React.useEffect(() => {
     if (!isSelected) return;
-    const handleOutsideClick = (e: MouseEvent) => {
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setIsSelected(false);
       }
     };
     document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+    };
   }, [isSelected]);
 
   return (
@@ -194,8 +209,10 @@ function StickerItem({ sticker, isEditMode, onMove, onRotate, onScale, onDelete,
         transform: `rotate(${sticker.rotation}deg)`,
         transition: isDragging ? 'none' : 'filter 0.15s',
         filter: isSelected && isEditMode ? 'drop-shadow(0 0 8px rgba(99,102,241,0.5))' : 'none',
+        touchAction: isEditMode ? 'none' : 'auto',
       }}
       onMouseDown={handleMouseDown}
+      onTouchStart={handleMouseDown}
       onClick={(e) => {
         if (!isEditMode) return;
         e.stopPropagation();
@@ -211,20 +228,20 @@ function StickerItem({ sticker, isEditMode, onMove, onRotate, onScale, onDelete,
       {/* Controls (shown when selected in edit mode) */}
       {isSelected && isEditMode && (
         <div
-          className="absolute -top-9 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-stone-200 rounded-full px-2 py-1 shadow-card animate-fade-in"
+          className="absolute -top-9 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm border border-stone-200 dark:border-stone-700 rounded-full px-2 py-1 shadow-card animate-fade-in"
           data-control="true"
         >
-          <button data-control="true" onClick={handleScaleDown} title="Shrink" className="w-6 h-6 flex items-center justify-center hover:bg-stone-100 rounded-full transition-colors">
-            <ZoomOut size={12} className="text-stone-600" />
+          <button data-control="true" onClick={handleScaleDown} title="Shrink" className="w-6 h-6 flex items-center justify-center hover:bg-stone-100 dark:hover:bg-stone-800 rounded-full transition-colors">
+            <ZoomOut size={12} className="text-stone-600 dark:text-stone-300" />
           </button>
-          <button data-control="true" onClick={handleScaleUp} title="Grow" className="w-6 h-6 flex items-center justify-center hover:bg-stone-100 rounded-full transition-colors">
-            <ZoomIn size={12} className="text-stone-600" />
+          <button data-control="true" onClick={handleScaleUp} title="Grow" className="w-6 h-6 flex items-center justify-center hover:bg-stone-100 dark:hover:bg-stone-800 rounded-full transition-colors">
+            <ZoomIn size={12} className="text-stone-600 dark:text-stone-300" />
           </button>
-          <button data-control="true" onClick={handleRotate} title="Rotate 15deg" className="w-6 h-6 flex items-center justify-center hover:bg-stone-100 rounded-full transition-colors">
-            <RotateCw size={12} className="text-stone-600" />
+          <button data-control="true" onClick={handleRotate} title="Rotate 15deg" className="w-6 h-6 flex items-center justify-center hover:bg-stone-100 dark:hover:bg-stone-800 rounded-full transition-colors">
+            <RotateCw size={12} className="text-stone-600 dark:text-stone-300" />
           </button>
-          <div className="w-px h-4 bg-stone-200 mx-0.5" />
-          <button data-control="true" onClick={handleDelete} title="Delete sticker" className="w-6 h-6 flex items-center justify-center hover:bg-rose-50 rounded-full transition-colors">
+          <div className="w-px h-4 bg-stone-200 dark:bg-stone-700 mx-0.5" />
+          <button data-control="true" onClick={handleDelete} title="Delete sticker" className="w-6 h-6 flex items-center justify-center hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-full transition-colors">
             <X size={12} className="text-rose-500" />
           </button>
         </div>
@@ -247,7 +264,7 @@ interface StickerLayerProps {
 
 export function StickerLayer({ stickers, isEditMode = false, onMove, onRotate, onScale, onDelete, onBringToFront }: StickerLayerProps) {
   return (
-    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 5 }}>
+    <div className="absolute inset-0 pointer-events-none">
       {stickers.map((sticker) => (
         <div key={sticker.id} style={{ pointerEvents: isEditMode ? 'auto' : 'none' }}>
           <StickerItem

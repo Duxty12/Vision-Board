@@ -1,13 +1,19 @@
 import type { Metadata } from 'next';
-import { Inter, Lora, Playfair_Display } from 'next/font/google';
+import { Plus_Jakarta_Sans, Caveat, Lora, Playfair_Display } from 'next/font/google';
 import './globals.css';
 
 import { ClerkProvider } from '@clerk/nextjs';
 
 // ─── Fonts ──────────────────────────────────────────────────────────────────
-const inter = Inter({
+const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-plus-jakarta',
+  display: 'swap',
+});
+
+const caveat = Caveat({
+  subsets: ['latin'],
+  variable: '--font-caveat',
   display: 'swap',
 });
 
@@ -62,7 +68,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${lora.variable} ${playfair.variable}`}
+      className={`${plusJakarta.variable} ${caveat.variable} ${lora.variable} ${playfair.variable}`}
     >
       <body className="min-h-screen bg-background font-sans antialiased">
         <ClerkProvider>

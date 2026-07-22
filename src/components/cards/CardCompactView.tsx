@@ -271,6 +271,15 @@ export function CardCompactView({
 
   // ── BOARD TEXT card (transparent, written directly onto board) ────────────────
   if (isQuote && card.attribution === 'board_text') {
+    const fontClassMap: Record<string, string> = {
+      sans: 'font-sans font-bold',
+      serif: 'font-serif font-semibold italic',
+      display: 'font-display font-bold',
+      handwriting: 'font-handwriting font-medium tracking-wide',
+    };
+    const fontClass = fontClassMap[card.category || 'handwriting'] || 'font-handwriting font-medium';
+    const textColor = card.color && (card.color.startsWith('#') && card.color !== '#FFF3B0') ? card.color : '#1e293b';
+
     return (
       <div
         onClick={onClick}
@@ -281,10 +290,10 @@ export function CardCompactView({
         }`}
         style={{
           transform: `rotate(${rotationDegrees}deg)`,
-          fontSize: `${Math.round(16 * scale)}px`,
+          fontSize: `${Math.round(18 * scale)}px`,
         }}
       >
-        <p className="text-stone-900 font-display font-bold leading-snug select-none whitespace-pre-wrap" style={{ fontSize: 'inherit' }}>
+        <p className={`${fontClass} leading-snug select-none whitespace-pre-wrap`} style={{ color: textColor, fontSize: 'inherit' }}>
           {card.content}
         </p>
       </div>

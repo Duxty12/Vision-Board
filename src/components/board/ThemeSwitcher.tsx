@@ -23,6 +23,11 @@ export function ThemeSwitcher({ boardId, currentTheme, onThemeChange }: ThemeSwi
   const [activeTheme, setActiveTheme] = useState<BoardTheme>(currentTheme);
   const [isPending, startTransition] = useTransition();
 
+  // Sync label when the parent board changes (e.g. switching boards from dropdown)
+  React.useEffect(() => {
+    setActiveTheme(currentTheme);
+  }, [currentTheme]);
+
   const handleSelect = (theme: BoardTheme) => {
     if (theme === activeTheme) { setOpen(false); return; }
     setActiveTheme(theme);

@@ -13,9 +13,10 @@ const config: Config = {
     extend: {
       // ─── Brand Fonts ──────────────────────────────────────────────
       fontFamily: {
-        sans: ['var(--font-inter)', ...fontFamily.sans],
+        sans: ['var(--font-plus-jakarta)', ...fontFamily.sans],
         serif: ['var(--font-lora)', ...fontFamily.serif],
         display: ['var(--font-playfair)', ...fontFamily.serif],
+        handwriting: ['var(--font-caveat)', 'cursive'],
       },
 
       // ─── Brand Colors ─────────────────────────────────────────────

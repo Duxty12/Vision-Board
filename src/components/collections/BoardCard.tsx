@@ -2,7 +2,7 @@
 
 import React, { useState, useTransition } from 'react';
 import Link from 'next/link';
-import { LayoutGrid, Star, MoreHorizontal, Edit3, Trash2, Pin } from 'lucide-react';
+import { LayoutGrid, Star, MoreHorizontal, Edit3, Pin } from 'lucide-react';
 import type { BoardWithCount } from '@/lib/types';
 import { toggleBoardStarred, updateBoard } from '@/lib/actions/boards';
 
@@ -27,13 +27,11 @@ export function BoardCard({ board, onEdit }: BoardCardProps) {
   const handleStarToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
     setIsStarred((prev) => !prev);
     startTransition(async () => {
       try {
         await toggleBoardStarred(board.id);
-      } catch (err) {
-        console.error('Failed to toggle star:', err);
+      } catch {
         setIsStarred(board.is_starred);
       }
     });
@@ -43,7 +41,6 @@ export function BoardCard({ board, onEdit }: BoardCardProps) {
     e.preventDefault();
     e.stopPropagation();
     setIsMenuOpen(false);
-
     startTransition(async () => {
       try {
         await updateBoard(board.id, { is_default: true });
@@ -62,11 +59,17 @@ export function BoardCard({ board, onEdit }: BoardCardProps) {
 
   return (
     <div className="glass-card rounded-2xl overflow-hidden group hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 relative flex flex-col h-full select-none">
-      <Link href={`/collections/${board.id}`} className="absolute inset-0 z-0" />
+
+      {/* Full-card link — z-10 fills the entire card, buttons sit on z-20 above it */}
+      <Link
+        href={`/collections/${board.id}`}
+        className="absolute inset-0 z-10 rounded-2xl"
+        aria-label={`Open ${board.title}`}
+      />
 
       {/* Theme swatch header */}
       <div
-        className="h-10 w-full transition-all duration-300 group-hover:h-12 flex items-center justify-end pr-3 z-10 relative"
+        className="h-10 w-full transition-all duration-300 group-hover:h-12 flex items-center justify-end pr-3 relative z-0"
         style={{ backgroundColor: swatch }}
       >
         {board.is_default && (
@@ -76,15 +79,19 @@ export function BoardCard({ board, onEdit }: BoardCardProps) {
         )}
       </div>
 
-      <div className="p-5 flex flex-col flex-1 z-10 relative pointer-events-none">
-        <div className="flex items-start justify-between mb-3 pointer-events-auto">
+      {/* Card body */}
+      <div className="p-5 flex flex-col flex-1 relative z-0">
+        {/* Top row: icon + action buttons */}
+        <div className="flex items-start justify-between mb-3">
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center shadow-inner"
             style={{ backgroundColor: `${swatch}30` }}
           >
             <LayoutGrid size={18} style={{ color: board.theme === 'dark' ? '#999' : 'hsl(30,20%,40%)' }} />
           </div>
-          <div className="flex items-center gap-1">
+
+          {/* Buttons — z-20 so they sit above the Link overlay */}
+          <div className="flex items-center gap-1 relative z-20">
             <button
               onClick={handleStarToggle}
               disabled={isPending}
@@ -114,12 +121,15 @@ export function BoardCard({ board, onEdit }: BoardCardProps) {
 
               {isMenuOpen && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsMenuOpen(false); }} />
-                  <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1a1c23] border border-stone-200 dark:border-white/10 rounded-xl shadow-glass p-1.5 min-w-[150px] animate-slide-up text-left pointer-events-auto">
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsMenuOpen(false); }}
+                  />
+                  <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1a1c23] border border-stone-200 dark:border-white/10 rounded-xl shadow-glass p-1.5 min-w-[150px] animate-slide-up text-left">
                     {!board.is_default && (
                       <button
                         onClick={handleSetDefault}
-                        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors text-xs font-sans font-semibold text-stone-700 dark:text-stone-305 cursor-pointer"
+                        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors text-xs font-sans font-semibold text-stone-700 dark:text-stone-300 cursor-pointer"
                       >
                         <Pin size={13} className="text-amber-600 rotate-45" />
                         Make Default
@@ -127,7 +137,7 @@ export function BoardCard({ board, onEdit }: BoardCardProps) {
                     )}
                     <button
                       onClick={handleEditClick}
-                      className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors text-xs font-sans font-semibold text-stone-700 dark:text-stone-305 cursor-pointer"
+                      className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors text-xs font-sans font-semibold text-stone-700 dark:text-stone-300 cursor-pointer"
                     >
                       <Edit3 size={13} className="text-stone-400" />
                       Edit Board
