@@ -271,28 +271,53 @@ export function DashboardClient({
   };
 
   const handleAddSticker = (type: StickerType) => {
-    startTransition(async () => {
+    const tempId = `temp-${crypto.randomUUID()}`;
+    const newSticker: Sticker = {
+      id: tempId,
+      board_id: board.id,
+      sticker_type: type,
+      position_x: 180 + Math.random() * 250,
+      position_y: 180 + Math.random() * 200,
+      rotation: (Math.random() * 20) - 10,
+      scale: 1,
+      z_index: 10,
+    };
+
+    // Optimistic UI update — render sticker instantly on screen (0ms delay)
+    setStickers((prev) => [...prev, newSticker]);
+
+    void (async () => {
       try {
-        const newSticker = await addSticker({
+        const savedSticker = await addSticker({
           board_id: board.id,
           sticker_type: type,
-          position_x: 180 + Math.random() * 250,
-          position_y: 180 + Math.random() * 200,
-          rotation: (Math.random() * 20) - 10,
-          scale: 1,
-          z_index: 10,
+          position_x: newSticker.position_x,
+          position_y: newSticker.position_y,
+          rotation: newSticker.rotation,
+          scale: newSticker.scale,
+          z_index: newSticker.z_index,
         });
-        setStickers((prev) => [...prev, newSticker]);
+        setStickers((prev) =>
+          prev.map((s) => (s.id === tempId ? savedSticker : s))
+        );
       } catch (err) {
         console.error('Failed to add sticker:', err);
+        // Rollback optimistic update if server action fails
+        setStickers((prev) => prev.filter((s) => s.id !== tempId));
       }
-    });
+    })();
   };
 
   const handleDeleteSticker = (id: string) => {
-    startTransition(async () => {
-      try { await deleteSticker(id); } catch { }
-    });
+    // Optimistic UI update — remove sticker instantly
+    setStickers((prev) => prev.filter((s) => s.id !== id));
+    void (async () => {
+      try {
+        await deleteSticker(id);
+      } catch (err) {
+        console.error('Failed to delete sticker:', err);
+      }
+    })();
   };
 
   const handlePinCard = (id: string) => {

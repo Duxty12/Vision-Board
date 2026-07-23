@@ -103,7 +103,7 @@ export async function deleteSticker(id: string): Promise<{ success: boolean }> {
 
     if (error) throw error;
 
-    revalidatePath('/dashboard');
+    // No revalidatePath — client already applied optimistic update.
     return { success: true };
   } catch (error) {
     console.error(`Error deleting sticker ${id}:`, error);
