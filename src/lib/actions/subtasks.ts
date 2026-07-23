@@ -37,10 +37,6 @@ export async function createSubtask(input: CreateSubtaskInput): Promise<Subtask>
       .single();
 
     if (error) throw error;
-
-    revalidatePath('/tasks');
-    revalidatePath('/dashboard');
-
     return data as Subtask;
   } catch (error) {
     console.error('Error creating subtask:', error);
@@ -71,10 +67,6 @@ export async function toggleSubtaskCompleted(id: string): Promise<Subtask> {
       .single();
 
     if (error) throw error;
-
-    revalidatePath('/tasks');
-    revalidatePath('/dashboard');
-
     return data as Subtask;
   } catch (error) {
     console.error(`Error toggling subtask ${id}:`, error);
@@ -96,10 +88,6 @@ export async function updateSubtaskTitle(id: string, title: string): Promise<Sub
       .single();
 
     if (error) throw error;
-
-    revalidatePath('/tasks');
-    revalidatePath('/dashboard');
-
     return data as Subtask;
   } catch (error) {
     console.error(`Error updating subtask ${id}:`, error);
@@ -119,9 +107,6 @@ export async function deleteSubtask(id: string): Promise<void> {
       .eq('id', id);
 
     if (error) throw error;
-
-    revalidatePath('/tasks');
-    revalidatePath('/dashboard');
   } catch (error) {
     console.error(`Error deleting subtask ${id}:`, error);
     throw error;

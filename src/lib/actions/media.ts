@@ -48,11 +48,6 @@ export async function createMedia(input: CreateMediaInput): Promise<Media> {
       .single();
 
     if (mediaError) throw mediaError;
-
-    revalidatePath('/goals');
-    revalidatePath('/tasks');
-    revalidatePath('/dashboard');
-
     return media as Media;
   } catch (error) {
     console.error('Error creating media:', error);
@@ -105,10 +100,6 @@ export async function deleteMedia(id: string): Promise<{ success: boolean }> {
         // We continue since the database row is already deleted
       }
     }
-
-    revalidatePath('/goals');
-    revalidatePath('/tasks');
-    revalidatePath('/dashboard');
 
     return { success: true };
   } catch (error) {

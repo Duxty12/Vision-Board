@@ -83,21 +83,22 @@ export async function createCard(input: CreateCardInput): Promise<CardWithRelati
     // Calculate highest z_index so newly added cards always appear on top
     let newZIndex = input.z_index;
     if (!newZIndex || newZIndex <= 1) {
-      const { data: maxCard } = await supabase
-        .from('cards')
-        .select('z_index')
-        .eq('board_id', targetBoardId)
-        .order('z_index', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      const { data: maxSticker } = await supabase
-        .from('stickers')
-        .select('z_index')
-        .eq('board_id', targetBoardId)
-        .order('z_index', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const [{ data: maxCard }, { data: maxSticker }] = await Promise.all([
+        supabase
+          .from('cards')
+          .select('z_index')
+          .eq('board_id', targetBoardId)
+          .order('z_index', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('stickers')
+          .select('z_index')
+          .eq('board_id', targetBoardId)
+          .order('z_index', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
 
       const topCardZ = maxCard?.z_index || 1;
       const topStickerZ = maxSticker?.z_index || 1;

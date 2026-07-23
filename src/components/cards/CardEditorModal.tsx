@@ -290,42 +290,43 @@ export function CardEditorModal({
 
       const cardId = savedCard.id;
 
-      // ── 2. Sync Subtasks (tasks only) ──
+      // ── 2. Sync Subtasks (tasks only) in parallel ──
+      const subtaskPromises: Promise<any>[] = [];
       if (type === 'task') {
-        // A. Delete removed subtasks
         const originalIds = originalSubtasksRef.current.map((s) => s.id).filter(Boolean) as string[];
         const currentIds = subtasks.map((s) => s.id).filter(Boolean) as string[];
         const deletedIds = originalIds.filter((id) => !currentIds.includes(id));
 
         for (const delId of deletedIds) {
-          await deleteSubtask(delId);
+          subtaskPromises.push(deleteSubtask(delId));
         }
 
-        // B. Insert or Update remaining subtasks
-        for (let i = 0; i < subtasks.length; i++) {
-          const sub = subtasks[i];
+        subtasks.forEach((sub, i) => {
           if (sub.isNew) {
-            await createSubtask({
-              card_id: cardId,
-              title: sub.title.trim() || 'Subtask',
-              position: i,
-              is_completed: sub.is_completed,
-            });
+            subtaskPromises.push(
+              createSubtask({
+                card_id: cardId,
+                title: sub.title.trim() || 'Subtask',
+                position: i,
+                is_completed: sub.is_completed,
+              }),
+            );
           } else if (sub.id) {
             const orig = originalSubtasksRef.current.find((o) => o.id === sub.id);
             if (orig) {
               if (orig.title !== sub.title) {
-                await updateSubtaskTitle(sub.id, sub.title.trim());
+                subtaskPromises.push(updateSubtaskTitle(sub.id, sub.title.trim()));
               }
               if (orig.is_completed !== sub.is_completed) {
-                await toggleSubtaskCompleted(sub.id);
+                subtaskPromises.push(toggleSubtaskCompleted(sub.id));
               }
             }
           }
-        }
+        });
       }
 
-      // ── 3. Sync Media (images & videos) ──
+      // ── 3. Sync Media (images & videos) in parallel ──
+      const mediaPromises: Promise<any>[] = [];
       const originalMedia = originalMediaRef.current || [];
       const originalImage = originalMedia.find((m) => m.media_type === 'image');
       const originalVideo = originalMedia.find((m) => m.media_type === 'video');
@@ -333,14 +334,16 @@ export function CardEditorModal({
       // Sync Image attachment
       if (imageStoragePath !== (originalImage?.storage_path || null)) {
         if (originalImage) {
-          await deleteMedia(originalImage.id);
+          mediaPromises.push(deleteMedia(originalImage.id));
         }
         if (imageStoragePath) {
-          await createMedia({
-            card_id: cardId,
-            media_type: 'image',
-            storage_path: imageStoragePath,
-          });
+          mediaPromises.push(
+            createMedia({
+              card_id: cardId,
+              media_type: 'image',
+              storage_path: imageStoragePath,
+            }),
+          );
         }
       }
 
@@ -349,21 +352,35 @@ export function CardEditorModal({
       const originalVideoUrl = originalVideo?.youtube_url || null;
       if (currentVideoUrl !== originalVideoUrl) {
         if (originalVideo) {
-          await deleteMedia(originalVideo.id);
+          mediaPromises.push(deleteMedia(originalVideo.id));
         }
         if (videoInfo && videoInfo.youtube_video_id) {
-          await createMedia({
-            card_id: cardId,
-            media_type: 'video',
-            youtube_url: videoInfo.youtube_url,
-            youtube_video_id: videoInfo.youtube_video_id,
-            thumbnail_url: videoInfo.thumbnail_url,
-          });
+          mediaPromises.push(
+            createMedia({
+              card_id: cardId,
+              media_type: 'video',
+              youtube_url: videoInfo.youtube_url,
+              youtube_video_id: videoInfo.youtube_video_id,
+              thumbnail_url: videoInfo.thumbnail_url,
+            }),
+          );
         }
       }
 
-      // Refetch the full saved card with relations for the callback
-      onSaved?.(savedCard as CardWithRelations);
+      // Await all subtask and media operations simultaneously
+      await Promise.all([...subtaskPromises, ...mediaPromises]);
+
+      // Construct relations for callback
+      const finalCard: CardWithRelations = {
+        ...savedCard,
+        media: imageStoragePath
+          ? [{ id: crypto.randomUUID(), card_id: cardId, media_type: 'image', storage_path: imageStoragePath, youtube_url: null, youtube_video_id: null, thumbnail_url: null, created_at: new Date().toISOString() }]
+          : videoInfo?.youtube_url
+          ? [{ id: crypto.randomUUID(), card_id: cardId, media_type: 'video', storage_path: null, youtube_url: videoInfo.youtube_url, youtube_video_id: videoInfo.youtube_video_id, thumbnail_url: videoInfo.thumbnail_url, created_at: new Date().toISOString() }]
+          : [],
+      };
+
+      onSaved?.(finalCard);
       onClose();
     } catch (err: any) {
       console.error('Error saving card:', err);
