@@ -5,11 +5,11 @@ import { Palette, Check } from 'lucide-react';
 import type { BoardTheme } from '@/lib/types';
 import { updateBoard } from '@/lib/actions/boards';
 
-const THEMES: { value: BoardTheme; label: string; preview: string }[] = [
-  { value: 'cork',     label: 'Cork',     preview: 'bg-[#f4ebd0]' },
-  { value: 'linen',    label: 'Linen',    preview: 'bg-[#f0e8d8]' },
-  { value: 'white',    label: 'White',    preview: 'bg-[#ffffff] border border-stone-200' },
-  { value: 'dark',     label: 'Dark',     preview: 'bg-[#1a1c23]' },
+const THEMES: { value: BoardTheme; label: string; preview: string; hex: string }[] = [
+  { value: 'cork',  label: 'Cork',  preview: 'bg-[#C09060]', hex: '#C09060' },
+  { value: 'linen', label: 'Linen', preview: 'bg-[#E8DCC8]', hex: '#E8DCC8' },
+  { value: 'white', label: 'White', preview: 'bg-[#FFFFFF] border border-stone-300', hex: '#FFFFFF' },
+  { value: 'dark',  label: 'Dark',  preview: 'bg-[#2B303B]', hex: '#2B303B' },
 ];
 
 interface ThemeSwitcherProps {
@@ -23,10 +23,12 @@ export function ThemeSwitcher({ boardId, currentTheme, onThemeChange }: ThemeSwi
   const [activeTheme, setActiveTheme] = useState<BoardTheme>(currentTheme);
   const [isPending, startTransition] = useTransition();
 
-  // Sync label when the parent board changes (e.g. switching boards from dropdown)
+  // Sync label when the parent board changes
   React.useEffect(() => {
     setActiveTheme(currentTheme);
   }, [currentTheme]);
+
+  const activeThemeMeta = THEMES.find((t) => t.value === activeTheme) || THEMES[0];
 
   const handleSelect = (theme: BoardTheme) => {
     if (theme === activeTheme) { setOpen(false); return; }
@@ -50,9 +52,13 @@ export function ThemeSwitcher({ boardId, currentTheme, onThemeChange }: ThemeSwi
         id="theme-switcher-btn"
         onClick={() => setOpen((v) => !v)}
         title="Change board theme"
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 border border-white/25 text-white/80 hover:text-white transition-all duration-200 text-xs font-sans font-medium backdrop-blur-sm"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/90 dark:bg-[#1a1c23]/90 hover:bg-white dark:hover:bg-[#1a1c23] border border-stone-200/90 dark:border-white/10 text-stone-800 dark:text-stone-100 transition-all duration-200 text-xs font-sans font-semibold shadow-xs hover:shadow-md hover:scale-102 cursor-pointer group"
       >
-        <Palette size={13} />
+        <div
+          className="w-3.5 h-3.5 rounded-full border border-stone-900/15 dark:border-white/20 shrink-0 shadow-xs transition-transform group-hover:scale-110"
+          style={{ backgroundColor: activeThemeMeta.hex }}
+        />
+        <Palette size={13} className="text-stone-500 dark:text-stone-400 group-hover:text-amber-600 transition-colors" />
         <span className="hidden sm:inline capitalize">{activeTheme}</span>
       </button>
 
@@ -61,20 +67,24 @@ export function ThemeSwitcher({ boardId, currentTheme, onThemeChange }: ThemeSwi
           {/* Backdrop */}
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           {/* Dropdown */}
-          <div className="absolute right-0 top-full mt-2 z-50 bg-white/95 backdrop-blur-xl border border-stone-200 rounded-xl shadow-glass p-2 min-w-[160px] animate-slide-up">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400 px-2 pb-1.5 font-sans">Board Theme</p>
+          <div className="absolute right-0 top-full mt-2 z-50 bg-white/95 dark:bg-[#1a1c23]/95 backdrop-blur-xl border border-stone-200 dark:border-white/10 rounded-2xl shadow-glass p-2 min-w-[170px] animate-slide-up">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400 dark:text-stone-500 px-2.5 py-1 font-sans">Board Canvas Theme</p>
             {THEMES.map(({ value, label, preview }) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => handleSelect(value)}
                 disabled={isPending}
-                className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-stone-50 transition-colors group text-sm font-sans font-medium text-stone-700"
+                className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl transition-all font-sans font-medium text-xs text-left cursor-pointer ${
+                  activeTheme === value
+                    ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 font-semibold'
+                    : 'text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800/50'
+                }`}
               >
-                <div className={`w-8 h-6 rounded-md ${preview} border border-stone-200/60 shrink-0 shadow-sm`} />
-                <span className="flex-1 text-left">{label}</span>
+                <div className={`w-6 h-6 rounded-lg ${preview} border border-stone-900/10 dark:border-white/10 shrink-0 shadow-xs`} />
+                <span className="flex-1 capitalize">{label}</span>
                 {activeTheme === value && (
-                  <Check size={13} className="text-cork-500 shrink-0" />
+                  <Check size={14} className="text-amber-600 dark:text-amber-400 shrink-0" />
                 )}
               </button>
             ))}

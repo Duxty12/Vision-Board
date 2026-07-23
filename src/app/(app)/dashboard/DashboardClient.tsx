@@ -450,19 +450,17 @@ export function DashboardClient({
             {sizeMenuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setSizeMenuOpen(false)} />
-                <div className="absolute right-0 top-full mt-2 z-50 bg-white dark:bg-[#1f2026] border border-stone-200 dark:border-[#383a45] rounded-xl shadow-glass p-2 min-w-[170px] animate-slide-up">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400 dark:text-stone-500 px-2 pb-1.5 font-sans">Canvas Dimensions</p>
-                  {SIZE_PRESETS.map(({ value, label }) => (
+                <div className="absolute right-0 top-full mt-2 z-50 bg-white dark:bg-[#1f2026] border border-stone-200 dark:border-[#383a45] rounded-xl shadow-glass p-1.5 min-w-[150px] animate-slide-up">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400 dark:text-stone-500 px-2.5 py-1 font-sans">Canvas Dimensions</p>
+                  {SIZE_PRESETS.map((preset) => (
                     <button
-                      key={value}
+                      key={preset.value}
                       type="button"
-                      onClick={() => handleSizeChange(value)}
-                      className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors text-xs font-sans font-medium text-stone-750 dark:text-stone-300"
+                      onClick={() => handleSizeChange(preset.value)}
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-900 transition-colors text-xs font-sans font-medium text-stone-700 dark:text-stone-300 text-left cursor-pointer"
                     >
-                      <span className="flex-1 text-left">{label}</span>
-                      {boardSize === value && (
-                        <Check size={12} className="text-amber-600 shrink-0" />
-                      )}
+                      <span>{preset.label}</span>
+                      {boardSize === preset.value && <Check size={12} className="text-amber-600" />}
                     </button>
                   ))}
                 </div>
@@ -495,9 +493,9 @@ export function DashboardClient({
       )}
 
       {/* ── Distinct Wooden Framed Board Container ─────────────────────── */}
-      <div className="w-full overflow-x-auto pt-8 pb-4 px-4 custom-board-scrollbar">
+      <div className="w-full overflow-x-auto pt-8 pb-4 custom-board-scrollbar">
         <div
-          className={`relative mx-auto ${activePreset.widthClass} transition-all duration-300`}
+          className={`mx-auto relative transition-all duration-300 pb-16 pt-4 ${activePreset.widthClass}`}
           style={{ minWidth: activePreset.minWidth }}
         >
           {/* Leather Hanging Straps */}

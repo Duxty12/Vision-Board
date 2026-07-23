@@ -78,21 +78,26 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           >
             <div className="flex items-center gap-3">
               <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-lg"
+                className="w-9.5 h-9.5 rounded-xl flex items-center justify-center shrink-0 shadow-lg relative group transition-transform duration-200 hover:scale-105"
                 style={{
                   background: 'linear-gradient(135deg, #d9902e 0%, #e4a94a 50%, #f5d08b 100%)',
-                  boxShadow: '0 4px 16px rgba(217,144,46,0.35)',
+                  boxShadow: '0 4px 18px rgba(217,144,46,0.4)',
                 }}
               >
-                <Pin size={17} className="text-stone-950 rotate-12" />
+                <Pin size={18} className="text-stone-950 rotate-12 transition-transform group-hover:rotate-45 duration-300" />
               </div>
               {!isCollapsed && (
                 <div className="overflow-hidden">
-                  <span className="font-display font-bold text-lg text-white leading-none tracking-tight block whitespace-nowrap">
-                    StillBoard
-                  </span>
-                  <span className="text-[10px] font-sans text-amber-500/80 tracking-widest uppercase font-semibold flex items-center gap-1 mt-0.5">
-                    <Sparkles size={9} className="text-amber-400" /> calm board
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-display font-bold text-lg text-white leading-none tracking-tight block whitespace-nowrap">
+                      StillBoard
+                    </span>
+                    <span className="text-[9px] font-bold font-sans px-1.5 py-0.5 rounded-md bg-gradient-to-r from-amber-500/25 to-amber-400/10 text-amber-300 border border-amber-500/30 shadow-xs">
+                      v2.0
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-sans text-amber-400/90 tracking-widest uppercase font-semibold flex items-center gap-1 mt-1">
+                    <Sparkles size={9} className="text-amber-400 animate-pulse" /> calm space
                   </span>
                 </div>
               )}

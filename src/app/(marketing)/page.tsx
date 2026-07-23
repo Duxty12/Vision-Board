@@ -210,8 +210,8 @@ export default function LandingPage() {
 
         {/* Hero Copy */}
         <div className="relative z-10 text-center max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-6 text-xs sm:text-sm font-semibold text-amber-900 border border-amber-300/60 bg-amber-100/60 shadow-xs">
-            <Sparkles size={14} className="text-amber-600" />
+          <div className="inline-flex items-center gap-2 px-4.5 py-1.5 rounded-full mb-6 text-xs sm:text-sm font-semibold text-amber-900 border border-amber-300/60 bg-amber-100/70 shadow-xs shimmer-badge">
+            <Sparkles size={14} className="text-amber-600 animate-pulse" />
             <span>Private Freeform Vision Board · No Social Feed</span>
           </div>
 

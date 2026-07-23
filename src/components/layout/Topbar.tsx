@@ -66,25 +66,36 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
       {/* ── Center decorative strip ── */}
       <div className="flex-1 flex items-center justify-center gap-6 px-2">
         {/* Motivational sparkle strip */}
-        <div className="hidden lg:flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-50/90 border border-amber-200/70 shadow-xs">
-          <Sparkles size={11} className="text-amber-500 shrink-0" />
-          <span className="text-xs font-semibold font-sans text-amber-800 whitespace-nowrap">
+        <div className="hidden lg:flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-amber-500/10 border border-amber-300/40 shadow-xs">
+          <Sparkles size={11} className="text-amber-600 shrink-0 animate-pulse" />
+          <span className="text-xs font-semibold font-sans text-amber-900/90 whitespace-nowrap">
             Your vision is becoming reality.
           </span>
-          <Sparkles size={11} className="text-amber-500 shrink-0" />
+          <Sparkles size={11} className="text-amber-600 shrink-0 animate-pulse" />
         </div>
       </div>
 
-      {/* ── Right: date + user ── */}
+      {/* ── Right: date + quick action + user ── */}
       <div className="flex items-center gap-2.5 shrink-0">
         {/* Today's date pill */}
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 border border-stone-200/90 text-stone-600 shadow-xs">
-          <Calendar size={11} className="shrink-0 text-amber-600" />
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 border border-stone-200/90 text-stone-600 shadow-xs">
+          <Calendar size={12} className="shrink-0 text-amber-600" />
           <span className="text-xs font-semibold font-sans whitespace-nowrap">{today}</span>
         </div>
 
+        {/* Quick action button to Vision Boards */}
+        <a
+          href="/collections"
+          className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition-all duration-200 hover:scale-105 shadow-xs"
+          style={{
+            background: 'linear-gradient(135deg, #c07423 0%, #d9902e 100%)',
+          }}
+        >
+          + New Board
+        </a>
+
         {/* User avatar / Clerk button */}
-        <div id="topbar-user-button" className="shrink-0 flex items-center">
+        <div id="topbar-user-button" className="shrink-0 flex items-center p-0.5 rounded-full ring-2 ring-amber-500/20">
           <UserButton afterSignOutUrl="/" />
         </div>
       </div>

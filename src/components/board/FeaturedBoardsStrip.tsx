@@ -20,7 +20,7 @@ export function FeaturedBoardsStrip({ boards }: FeaturedBoardsStripProps) {
   if (!boards || boards.length === 0) return null;
 
   return (
-    <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-2 pt-1 overflow-visible">
+    <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-5 pt-2 px-1">
       {boards.map((board) => {
         const swatch = themeColors[board.theme] ?? themeColors.cork;
         return (

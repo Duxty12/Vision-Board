@@ -12,6 +12,7 @@ interface BoardGridProps {
 
 export function BoardGrid({ initialBoards }: BoardGridProps) {
   const [boards, setBoards] = useState<BoardWithCount[]>(initialBoards);
+  const [searchQuery, setSearchQuery] = useState('');
   const [editorOpen, setEditorOpen] = useState(false);
   const [selectedBoard, setSelectedBoard] = useState<BoardWithCount | null>(null);
 
@@ -19,6 +20,11 @@ export function BoardGrid({ initialBoards }: BoardGridProps) {
   React.useEffect(() => {
     setBoards(initialBoards);
   }, [initialBoards]);
+
+  const filteredBoards = React.useMemo(() => {
+    if (!searchQuery.trim()) return boards;
+    return boards.filter((b) => b.title.toLowerCase().includes(searchQuery.toLowerCase()));
+  }, [boards, searchQuery]);
 
   const handleEdit = (board: BoardWithCount) => {
     setSelectedBoard(board);
@@ -57,34 +63,54 @@ export function BoardGrid({ initialBoards }: BoardGridProps) {
 
   return (
     <>
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between mb-8">
+      {/* ── Header & Action Bar ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
-            <LayoutGrid size={22} className="text-cork-500" />
+            <div className="w-8 h-8 rounded-xl bg-amber-500/15 flex items-center justify-center text-amber-600">
+              <LayoutGrid size={18} />
+            </div>
             <h1 className="font-display text-2xl font-bold text-stone-900 dark:text-white">Vision Boards</h1>
+            <span className="text-xs font-bold font-sans px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
+              {boards.length} {boards.length === 1 ? 'board' : 'boards'}
+            </span>
           </div>
           <p className="text-stone-500 dark:text-stone-400 text-sm font-sans">
-            Organise your goals, memories, and inspiration across multiple boards.
+            Organise your goals, memories, and inspiration across custom spaces.
           </p>
         </div>
-        <button
-          id="add-board-btn"
-          onClick={handleCreateNew}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold font-sans transition-all duration-200 hover:scale-105 hover:opacity-90 cursor-pointer"
-          style={{
-            background: 'linear-gradient(135deg, #c07423, #d9902e)',
-            boxShadow: '0 4px 14px rgba(192,116,35,0.3)',
-          }}
-        >
-          <Plus size={16} />
-          New board
-        </button>
+
+        <div className="flex items-center gap-3">
+          {/* Search bar */}
+          <div className="relative flex-1 sm:w-64">
+            <input
+              type="text"
+              placeholder="Filter boards..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 rounded-xl bg-white/80 dark:bg-[#1a1c23] border border-stone-200 dark:border-white/10 text-xs font-sans text-stone-800 dark:text-stone-200 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40 shadow-xs"
+            />
+            <LayoutGrid size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+          </div>
+
+          <button
+            id="add-board-btn"
+            onClick={handleCreateNew}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-xs sm:text-sm font-bold font-sans transition-all duration-200 hover:scale-105 shadow-md cursor-pointer shrink-0"
+            style={{
+              background: 'linear-gradient(135deg, #c07423 0%, #d9902e 100%)',
+              boxShadow: '0 4px 14px rgba(192,116,35,0.3)',
+            }}
+          >
+            <Plus size={16} />
+            <span>New board</span>
+          </button>
+        </div>
       </div>
 
       {/* ── Boards grid ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-        {boards.map((board) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-12 pt-2 px-1">
+        {filteredBoards.map((board) => (
           <BoardCard
             key={board.id}
             board={board}
