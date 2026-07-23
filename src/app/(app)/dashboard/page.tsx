@@ -27,12 +27,13 @@ export default async function DashboardPage({
   }
 
   // ── Fetch other lists ─────────────────────────────────────────────────────
-  const [boards, starredBoards, starredCards, allUserCards] = await Promise.all([
+  const [boards, starredBoards, allUserCards] = await Promise.all([
     getUserBoards().catch(() => []),
     getStarredBoards().catch(() => []),
-    getCards({ is_starred: true }).catch(() => []),
     getCards().catch(() => []),       // all user cards across all boards (goals, tasks, etc.)
   ]);
+
+  const starredCards = allUserCards.filter((card) => card.is_starred);
 
   const [boardCards, stickers] = activeBoard
     ? await Promise.all([

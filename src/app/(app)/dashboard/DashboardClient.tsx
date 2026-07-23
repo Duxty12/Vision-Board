@@ -97,17 +97,8 @@ export function DashboardClient({
   }, [initialCards]);
   React.useEffect(() => { setStickers(initialStickers); }, [initialStickers]);
   React.useEffect(() => { setStarredCards(initialStarredCards); }, [initialStarredCards]);
-  // ── Sync theme when switching boards or using persisted local theme ─────────
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`stillboard_theme_${board.id}`) as BoardTheme;
-      if (saved && ['cork', 'linen', 'white', 'dark'].includes(saved)) {
-        setCurrentTheme(saved);
-        return;
-      }
-    }
-    setCurrentTheme(board.theme);
-  }, [board.id, board.theme]);
+  // ── Sync theme when switching to a different board ─────────────────────────
+  React.useEffect(() => { setCurrentTheme(board.theme); }, [board.id, board.theme]);
 
   // Load board size preference from localStorage
   useEffect(() => {
@@ -340,9 +331,6 @@ export function DashboardClient({
 
   const handleThemeChange = (theme: BoardTheme) => {
     setCurrentTheme(theme);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`stillboard_theme_${board.id}`, theme);
-    }
     router.refresh();
   };
 
@@ -438,8 +426,8 @@ export function DashboardClient({
               if (!nextMode) setIsDrawerOpen(false);
             }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-sans font-semibold transition-all duration-200 ${isEditMode
-                ? 'bg-amber-600 border-amber-600 text-white hover:bg-amber-700'
-                : 'bg-white/85 dark:bg-[#1f2026]/85 hover:bg-white dark:hover:bg-[#1f2026] text-stone-700 dark:text-white/80 border-stone-200/80 dark:border-[#383a45]'
+              ? 'bg-amber-600 border-amber-600 text-white hover:bg-amber-700'
+              : 'bg-white/85 dark:bg-[#1f2026]/85 hover:bg-white dark:hover:bg-[#1f2026] text-stone-700 dark:text-white/80 border-stone-200/80 dark:border-[#383a45]'
               }`}
           >
             <Eye size={13} className={isEditMode ? 'inline' : 'hidden'} />

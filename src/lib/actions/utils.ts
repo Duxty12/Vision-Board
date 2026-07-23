@@ -1,9 +1,12 @@
+import { cache } from 'react';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 
 /**
  * Helper to resolve the authenticated user's internal database UUID
  * and their default or first board ID.
+ *
+ * Uses React `cache()` to deduplicate lookups within a single request.
  *
  * Uses the SERVICE ROLE client so lookups are not blocked by RLS
  * (which needs a Clerk JWT template — see server.ts for setup).
@@ -16,7 +19,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
  * (e.g. during development), we auto-create the user + default board row
  * on first access using Clerk's currentUser() API.
  */
-export async function getAuthUserContext() {
+export const getAuthUserContext = cache(async () => {
   const { userId: clerkId } = auth();
   if (!clerkId) {
     throw new Error('Unauthorized: User not signed in');
@@ -118,4 +121,4 @@ export async function getAuthUserContext() {
     boardId: board.id,
     supabase,
   };
-}
+});

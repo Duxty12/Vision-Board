@@ -6,10 +6,10 @@ import type { BoardTheme } from '@/lib/types';
 import { updateBoard } from '@/lib/actions/boards';
 
 const THEMES: { value: BoardTheme; label: string; preview: string; hex: string }[] = [
-  { value: 'cork',  label: 'Cork',  preview: 'bg-[#C09060]', hex: '#C09060' },
+  { value: 'cork', label: 'Cork', preview: 'bg-[#C09060]', hex: '#C09060' },
   { value: 'linen', label: 'Linen', preview: 'bg-[#E8DCC8]', hex: '#E8DCC8' },
   { value: 'white', label: 'White', preview: 'bg-[#FFFFFF] border border-stone-300', hex: '#FFFFFF' },
-  { value: 'dark',  label: 'Dark',  preview: 'bg-[#2B303B]', hex: '#2B303B' },
+  { value: 'dark', label: 'Dark', preview: 'bg-[#2B303B]', hex: '#2B303B' },
 ];
 
 interface ThemeSwitcherProps {
@@ -34,16 +34,10 @@ export function ThemeSwitcher({ boardId, currentTheme, onThemeChange }: ThemeSwi
     if (theme === activeTheme) { setOpen(false); return; }
     setActiveTheme(theme);
     setOpen(false);
-    
-    // Save locally for instant persistence across re-renders
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`stillboard_theme_${boardId}`, theme);
-    }
-
+    onThemeChange?.(theme);
     startTransition(async () => {
       try {
         await updateBoard(boardId, { theme });
-        onThemeChange?.(theme);
       } catch (err) {
         console.error('Failed to update theme:', err);
         setActiveTheme(currentTheme);
@@ -58,7 +52,7 @@ export function ThemeSwitcher({ boardId, currentTheme, onThemeChange }: ThemeSwi
         id="theme-switcher-btn"
         onClick={() => setOpen((v) => !v)}
         title="Change board theme"
-        className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/90 dark:bg-[#1a1c23]/90 hover:bg-white dark:hover:bg-[#1a1c23] border border-stone-200/90 dark:border-white/10 text-stone-800 dark:text-stone-100 transition-all duration-200 text-xs font-sans font-semibold shadow-xs hover:shadow-md hover:scale-102 cursor-pointer outline-none focus:outline-none focus:ring-0 select-none group"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/90 dark:bg-[#1a1c23]/90 hover:bg-white dark:hover:bg-[#1a1c23] border border-stone-200/90 dark:border-white/10 text-stone-800 dark:text-stone-100 transition-all duration-200 text-xs font-sans font-semibold shadow-xs hover:shadow-md hover:scale-102 cursor-pointer group"
       >
         <div
           className="w-3.5 h-3.5 rounded-full border border-stone-900/15 dark:border-white/20 shrink-0 shadow-xs transition-transform group-hover:scale-110"
@@ -81,11 +75,10 @@ export function ThemeSwitcher({ boardId, currentTheme, onThemeChange }: ThemeSwi
                 type="button"
                 onClick={() => handleSelect(value)}
                 disabled={isPending}
-                className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl transition-all font-sans font-medium text-xs text-left cursor-pointer ${
-                  activeTheme === value
+                className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-xl transition-all font-sans font-medium text-xs text-left cursor-pointer ${activeTheme === value
                     ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 font-semibold'
                     : 'text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800/50'
-                }`}
+                  }`}
               >
                 <div className={`w-6 h-6 rounded-lg ${preview} border border-stone-900/10 dark:border-white/10 shrink-0 shadow-xs`} />
                 <span className="flex-1 capitalize">{label}</span>

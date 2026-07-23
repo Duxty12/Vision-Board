@@ -135,15 +135,16 @@ export async function reorderSubtasks(subtasks: { id: string; position: number }
   try {
     const { supabase } = await getAuthUserContext();
 
-    // Use individual updates since upsert requires all non-nullable fields
-    for (const { id, position } of subtasks) {
-      const { error } = await supabase
-        .from('subtasks')
-        .update({ position })
-        .eq('id', id);
-
-      if (error) throw error;
-    }
+    // Execute subtask position updates in parallel
+    await Promise.all(
+      subtasks.map(async ({ id, position }) => {
+        const { error } = await supabase
+          .from('subtasks')
+          .update({ position })
+          .eq('id', id);
+        if (error) throw error;
+      }),
+    );
 
     revalidatePath('/tasks');
     revalidatePath('/dashboard');
