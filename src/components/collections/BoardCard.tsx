@@ -69,7 +69,7 @@ export function BoardCard({ board, onEdit }: BoardCardProps) {
 
       {/* Theme swatch header */}
       <div
-        className="h-10 w-full transition-all duration-300 group-hover:h-12 flex items-center justify-end pr-3 relative z-0"
+        className="h-10 w-full transition-all duration-300 group-hover:h-12 flex items-center justify-end pr-3 relative"
         style={{ backgroundColor: swatch }}
       >
         {board.is_default && (
@@ -80,7 +80,7 @@ export function BoardCard({ board, onEdit }: BoardCardProps) {
       </div>
 
       {/* Card body */}
-      <div className="p-5 flex flex-col flex-1 relative z-0">
+      <div className="p-5 flex flex-col flex-1 relative">
         {/* Top row: icon + action buttons */}
         <div className="flex items-start justify-between mb-3">
           <div

@@ -165,7 +165,7 @@ export function TasksPageClient({ initialCards }: TasksPageClientProps) {
       </div>
 
       {/* ── Stat Widgets ── */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
         {[
           { label: 'Due Today', value: dueTodayCount, color: '#FFF3B0', icon: Calendar },
           { label: 'Overdue', value: overdueCount, color: '#FFB3C6', icon: AlertCircle },
@@ -173,17 +173,17 @@ export function TasksPageClient({ initialCards }: TasksPageClientProps) {
         ].map(({ label, value, color, icon: Icon }) => (
           <div
             key={label}
-            className="glass-card p-4 rounded-2xl flex items-center gap-4 border border-stone-200/50"
+            className="glass-card p-3.5 sm:p-4 rounded-2xl flex items-center gap-3 sm:gap-4 border border-stone-200/50 dark:border-[#383a45]"
           >
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
               style={{ backgroundColor: color }}
             >
               <Icon size={18} className="text-stone-850" />
             </div>
-            <div>
-              <div className="font-display text-2xl font-bold text-stone-900">{value}</div>
-              <div className="text-xs text-stone-500 font-sans font-semibold uppercase tracking-wider">{label}</div>
+            <div className="min-w-0 flex-1">
+              <div className="font-display text-xl sm:text-2xl font-bold text-stone-900 dark:text-white leading-none mb-0.5">{value}</div>
+              <div className="text-[10px] sm:text-xs text-stone-500 dark:text-stone-400 font-sans font-semibold uppercase tracking-wider truncate">{label}</div>
             </div>
           </div>
         ))}
@@ -193,11 +193,10 @@ export function TasksPageClient({ initialCards }: TasksPageClientProps) {
       <div className="flex items-center gap-2 mb-6 flex-wrap select-none">
         <button
           id="task-filter-all"
-          className={`px-3 py-1.5 rounded-full text-xs font-medium font-sans transition-all duration-200 ${
-            activePriority === 'All' && activeDueRange === 'All' && !showRecurring
+          className={`px-3 py-1.5 rounded-full text-xs font-medium font-sans transition-all duration-200 ${activePriority === 'All' && activeDueRange === 'All' && !showRecurring
               ? 'bg-cork-500 text-white shadow-sm'
               : 'bg-white border border-stone-200 text-stone-600 hover:border-cork-300 hover:text-cork-700'
-          }`}
+            }`}
           onClick={() => {
             setActivePriority('All');
             setActiveDueRange('All');
@@ -210,11 +209,10 @@ export function TasksPageClient({ initialCards }: TasksPageClientProps) {
         {/* Priority Filters */}
         <button
           id="task-filter-high"
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium font-sans transition-all duration-200 border ${
-            activePriority === 'High'
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium font-sans transition-all duration-200 border ${activePriority === 'High'
               ? 'bg-rose-600 border-rose-600 text-white shadow-sm'
               : 'bg-white border-stone-200 text-stone-600 hover:border-rose-300 hover:text-rose-700'
-          }`}
+            }`}
           onClick={() => {
             setActivePriority(activePriority === 'High' ? 'All' : 'High');
             setActiveDueRange('All');
@@ -227,11 +225,10 @@ export function TasksPageClient({ initialCards }: TasksPageClientProps) {
 
         <button
           id="task-filter-medium"
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium font-sans transition-all duration-200 border ${
-            activePriority === 'Medium'
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium font-sans transition-all duration-200 border ${activePriority === 'Medium'
               ? 'bg-amber-500 border-amber-500 text-white shadow-sm'
               : 'bg-white border-stone-200 text-stone-600 hover:border-amber-300 hover:text-amber-700'
-          }`}
+            }`}
           onClick={() => {
             setActivePriority(activePriority === 'Medium' ? 'All' : 'Medium');
             setActiveDueRange('All');
@@ -245,11 +242,10 @@ export function TasksPageClient({ initialCards }: TasksPageClientProps) {
         {/* Due Date Filters */}
         <button
           id="task-filter-today"
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium font-sans transition-all duration-200 border ${
-            activeDueRange === 'Today'
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium font-sans transition-all duration-200 border ${activeDueRange === 'Today'
               ? 'bg-sky-500 border-sky-500 text-white shadow-sm'
               : 'bg-white border-stone-200 text-stone-600 hover:border-sky-300 hover:text-sky-750'
-          }`}
+            }`}
           onClick={() => {
             setActiveDueRange(activeDueRange === 'Today' ? 'All' : 'Today');
             setActivePriority('All');
@@ -262,11 +258,10 @@ export function TasksPageClient({ initialCards }: TasksPageClientProps) {
 
         <button
           id="task-filter-overdue"
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium font-sans transition-all duration-200 border ${
-            activeDueRange === 'Overdue'
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium font-sans transition-all duration-200 border ${activeDueRange === 'Overdue'
               ? 'bg-red-500 border-red-500 text-white shadow-sm'
               : 'bg-white border-stone-200 text-stone-600 hover:border-red-350 hover:text-red-700'
-          }`}
+            }`}
           onClick={() => {
             setActiveDueRange(activeDueRange === 'Overdue' ? 'All' : 'Overdue');
             setActivePriority('All');
@@ -280,11 +275,10 @@ export function TasksPageClient({ initialCards }: TasksPageClientProps) {
         {/* Recurring Filter */}
         <button
           id="task-filter-recurring"
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium font-sans transition-all duration-200 border ${
-            showRecurring
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium font-sans transition-all duration-200 border ${showRecurring
               ? 'bg-purple-650 border-purple-650 text-white shadow-sm'
               : 'bg-white border-stone-200 text-stone-600 hover:border-purple-300 hover:text-purple-750'
-          }`}
+            }`}
           onClick={() => {
             setShowRecurring(!showRecurring);
             setActivePriority('All');
@@ -299,11 +293,10 @@ export function TasksPageClient({ initialCards }: TasksPageClientProps) {
         <div className="ml-auto flex items-center gap-2">
           <button
             id="task-filter-starred"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium font-sans transition-all duration-200 border ${
-              showStarred
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium font-sans transition-all duration-200 border ${showStarred
                 ? 'bg-amber-500 border-amber-500 text-white shadow-sm'
                 : 'bg-white border-stone-200 text-stone-600 hover:border-amber-300 hover:text-amber-750'
-            }`}
+              }`}
             onClick={() => setShowStarred(!showStarred)}
           >
             <Star size={11} className={showStarred ? 'fill-white' : ''} />
@@ -312,11 +305,10 @@ export function TasksPageClient({ initialCards }: TasksPageClientProps) {
 
           <button
             id="task-filter-completed"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium font-sans transition-all duration-200 border ${
-              showCompleted
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium font-sans transition-all duration-200 border ${showCompleted
                 ? 'bg-green-600 border-green-600 text-white shadow-sm'
                 : 'bg-white border-stone-200 text-stone-600 hover:border-green-300 hover:text-green-700'
-            }`}
+              }`}
             onClick={() => setShowCompleted(!showCompleted)}
           >
             <CheckCircle2 size={11} />
@@ -345,9 +337,8 @@ export function TasksPageClient({ initialCards }: TasksPageClientProps) {
                     <button
                       key={mode}
                       type="button"
-                      className={`w-full text-left px-3.5 py-1.5 text-xs font-medium font-sans hover:bg-stone-50 transition-colors ${
-                        sortBy === mode ? 'text-cork-600 font-semibold' : 'text-stone-600'
-                      }`}
+                      className={`w-full text-left px-3.5 py-1.5 text-xs font-medium font-sans hover:bg-stone-50 transition-colors ${sortBy === mode ? 'text-cork-600 font-semibold' : 'text-stone-600'
+                        }`}
                       onClick={() => {
                         setSortBy(mode);
                         setIsSortDropdownOpen(false);
@@ -365,9 +356,8 @@ export function TasksPageClient({ initialCards }: TasksPageClientProps) {
 
       {/* ── Tasks Grid ── */}
       <div
-        className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 transition-opacity duration-200 ${
-          isPending ? 'opacity-60' : 'opacity-100'
-        }`}
+        className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 transition-opacity duration-200 ${isPending ? 'opacity-60' : 'opacity-100'
+          }`}
       >
         {filteredCards.map((card) => (
           <CardCompactView

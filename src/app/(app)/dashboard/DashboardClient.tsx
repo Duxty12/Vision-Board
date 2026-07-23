@@ -30,14 +30,14 @@ interface DashboardClientProps {
 
 type BoardSize = 'compact' | 'standard' | 'large' | 'widescreen' | 'portrait-sm' | 'portrait-lg' | 'tall';
 
-const SIZE_PRESETS: { value: BoardSize; label: string; widthClass: string; height: string }[] = [
-  { value: 'compact',     label: 'Compact',      widthClass: 'max-w-4xl',  height: '640px'  },
-  { value: 'standard',    label: 'Standard',     widthClass: 'max-w-5xl',  height: '760px'  },
-  { value: 'large',       label: 'Large',        widthClass: 'max-w-6xl',  height: '860px'  },
-  { value: 'widescreen',  label: 'Widescreen',   widthClass: 'max-w-7xl',  height: '960px'  },
-  { value: 'portrait-sm', label: 'Portrait S',   widthClass: 'max-w-lg',   height: '900px'  },
-  { value: 'portrait-lg', label: 'Portrait L',   widthClass: 'max-w-xl',   height: '1100px' },
-  { value: 'tall',        label: 'Tall Scroll',  widthClass: 'max-w-5xl',  height: '1400px' },
+const SIZE_PRESETS: { value: BoardSize; label: string; widthClass: string; minWidth: string; height: string }[] = [
+  { value: 'compact', label: 'Compact', widthClass: 'max-w-4xl', minWidth: '896px', height: '640px' },
+  { value: 'standard', label: 'Standard', widthClass: 'max-w-5xl', minWidth: '1024px', height: '760px' },
+  { value: 'large', label: 'Large', widthClass: 'max-w-6xl', minWidth: '1152px', height: '860px' },
+  { value: 'widescreen', label: 'Widescreen', widthClass: 'max-w-7xl', minWidth: '1280px', height: '960px' },
+  { value: 'portrait-sm', label: 'Portrait S', widthClass: 'max-w-lg', minWidth: '512px', height: '900px' },
+  { value: 'portrait-lg', label: 'Portrait L', widthClass: 'max-w-xl', minWidth: '576px', height: '1100px' },
+  { value: 'tall', label: 'Tall Scroll', widthClass: 'max-w-5xl', minWidth: '1024px', height: '1400px' },
 ];
 
 export function DashboardClient({
@@ -61,7 +61,7 @@ export function DashboardClient({
   // Control modes
   const [isEditMode, setIsEditMode] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  
+
   // Board Size options
   const [boardSize, setBoardSize] = useState<BoardSize>('large');
   const [sizeMenuOpen, setSizeMenuOpen] = useState(false);
@@ -104,7 +104,7 @@ export function DashboardClient({
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(`stillboard_size_${board.id}`) as BoardSize;
-      const valid: BoardSize[] = ['compact','standard','large','widescreen','portrait-sm','portrait-lg','tall'];
+      const valid: BoardSize[] = ['compact', 'standard', 'large', 'widescreen', 'portrait-sm', 'portrait-lg', 'tall'];
       if (saved && valid.includes(saved)) {
         setBoardSize(saved);
       }
@@ -208,7 +208,7 @@ export function DashboardClient({
         if (selectedCard?.id === id) {
           setSelectedCard((prev) => prev ? { ...prev, is_completed: updated.is_completed } : null);
         }
-      } catch {}
+      } catch { }
     })();
   };
 
@@ -243,7 +243,7 @@ export function DashboardClient({
         if (selectedCard?.id === id) {
           setSelectedCard((prev) => prev ? { ...prev, is_starred: updated.is_starred } : null);
         }
-      } catch {}
+      } catch { }
     })();
   };
 
@@ -266,7 +266,7 @@ export function DashboardClient({
     startTransition(async () => {
       try {
         await toggleSubtaskCompleted(subtaskId);
-      } catch {}
+      } catch { }
     });
   };
 
@@ -291,7 +291,7 @@ export function DashboardClient({
 
   const handleDeleteSticker = (id: string) => {
     startTransition(async () => {
-      try { await deleteSticker(id); } catch {}
+      try { await deleteSticker(id); } catch { }
     });
   };
 
@@ -338,7 +338,7 @@ export function DashboardClient({
 
   return (
     <div className="relative min-h-screen wall-backdrop pb-16 transition-colors duration-300">
-      
+
       {/* ── Top Sleek Toolbar ────────────────────────────────────────── */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 flex flex-wrap items-center justify-between gap-3 z-20 relative">
         <div className="flex items-center gap-3">
@@ -355,7 +355,7 @@ export function DashboardClient({
 
           <div className="flex items-center gap-2">
             <Sparkles size={16} className="text-amber-500 animate-[wiggle_4s_ease-in-out_infinite] shrink-0" />
-            
+
             {boards && boards.length > 0 ? (
               <div className="relative">
                 <button
@@ -425,11 +425,10 @@ export function DashboardClient({
               // Close drawer when exiting edit mode; never auto-open on enter
               if (!nextMode) setIsDrawerOpen(false);
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-sans font-semibold transition-all duration-200 ${
-              isEditMode
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-sans font-semibold transition-all duration-200 ${isEditMode
                 ? 'bg-amber-600 border-amber-600 text-white hover:bg-amber-700'
                 : 'bg-white/85 dark:bg-[#1f2026]/85 hover:bg-white dark:hover:bg-[#1f2026] text-stone-700 dark:text-white/80 border-stone-200/80 dark:border-[#383a45]'
-            }`}
+              }`}
           >
             <Eye size={13} className={isEditMode ? 'inline' : 'hidden'} />
             <Edit3 size={13} className={isEditMode ? 'hidden' : 'inline'} />
@@ -496,30 +495,35 @@ export function DashboardClient({
       )}
 
       {/* ── Distinct Wooden Framed Board Container ─────────────────────── */}
-      <div className={`relative mx-auto ${activePreset.widthClass} px-4 mt-6 transition-all duration-300`}>
-        {/* Leather Hanging Straps */}
-        <div className="absolute top-0 left-20 w-5.5 h-11 bg-amber-950/70 border border-amber-900/35 rounded-t-lg -translate-y-7.5 shadow z-10 hidden md:block">
-          <div className="w-2.5 h-2.5 bg-yellow-600 border border-yellow-700 rounded-full mx-auto mt-2 shadow-inner" />
-        </div>
-        <div className="absolute top-0 right-20 w-5.5 h-11 bg-amber-950/70 border border-amber-900/35 rounded-t-lg -translate-y-7.5 shadow z-10 hidden md:block">
-          <div className="w-2.5 h-2.5 bg-yellow-600 border border-yellow-700 rounded-full mx-auto mt-2 shadow-inner" />
-        </div>
+      <div className="w-full overflow-x-auto pt-8 pb-4 px-4 custom-board-scrollbar">
+        <div
+          className={`relative mx-auto ${activePreset.widthClass} transition-all duration-300`}
+          style={{ minWidth: activePreset.minWidth }}
+        >
+          {/* Leather Hanging Straps */}
+          <div className="absolute top-0 left-20 w-5.5 h-11 bg-amber-950/70 border border-amber-900/35 rounded-t-lg -translate-y-7.5 shadow z-10 hidden md:block">
+            <div className="w-2.5 h-2.5 bg-yellow-600 border border-yellow-700 rounded-full mx-auto mt-2 shadow-inner" />
+          </div>
+          <div className="absolute top-0 right-20 w-5.5 h-11 bg-amber-950/70 border border-amber-900/35 rounded-t-lg -translate-y-7.5 shadow z-10 hidden md:block">
+            <div className="w-2.5 h-2.5 bg-yellow-600 border border-yellow-700 rounded-full mx-auto mt-2 shadow-inner" />
+          </div>
 
-        {/* Board Frame container wrapper */}
-        <div className="board-frame overflow-hidden">
-          <BoardCanvas
-            board={{ ...board, theme: currentTheme }}
-            initialCards={pinnedCards}
-            initialStickers={stickers}
-            onEditCard={handleCardClick}
-            onToggleCompleted={handleToggleCompleted}
-            onToggleStarred={handleToggleStarred}
-            onDeleteSticker={handleDeleteSticker}
-            isEditMode={isEditMode}
-            onUnpinCard={handleUnpinCard}
-            className="transition-all duration-300"
-            style={{ minHeight: activePreset.height }}
-          />
+          {/* Board Frame container wrapper */}
+          <div className="board-frame overflow-hidden">
+            <BoardCanvas
+              board={{ ...board, theme: currentTheme }}
+              initialCards={pinnedCards}
+              initialStickers={stickers}
+              onEditCard={handleCardClick}
+              onToggleCompleted={handleToggleCompleted}
+              onToggleStarred={handleToggleStarred}
+              onDeleteSticker={handleDeleteSticker}
+              isEditMode={isEditMode}
+              onUnpinCard={handleUnpinCard}
+              className="transition-all duration-300"
+              style={{ minHeight: activePreset.height }}
+            />
+          </div>
         </div>
       </div>
 

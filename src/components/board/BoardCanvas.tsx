@@ -237,7 +237,7 @@ export function BoardCanvas({
             position_y: cardToUpdate!.position_y,
             z_index: nextZIndex,
           });
-        } catch {}
+        } catch { }
       })();
     }
   }, [stickers]);
@@ -265,7 +265,7 @@ export function BoardCanvas({
             position_y: cardToUpdate!.position_y,
             z_index: nextZIndex,
           });
-        } catch {}
+        } catch { }
       })();
     }
   }, [stickers]);
@@ -292,7 +292,7 @@ export function BoardCanvas({
       if (!card) return;
       const newX = Math.max(0, card.position_x + delta.x);
       const newY = Math.max(0, card.position_y + delta.y);
-      
+
       let nextZIndex = 1;
       setCards((prev) => {
         const maxCardZ = prev.reduce((max, c) => Math.max(max, c.z_index || 1), 1);
@@ -334,7 +334,7 @@ export function BoardCanvas({
       void (async () => {
         try {
           await updateSticker(id, { z_index: nextZIndex });
-        } catch {}
+        } catch { }
       })();
     }
   }, [cards]);
@@ -350,7 +350,7 @@ export function BoardCanvas({
     void (async () => {
       try {
         await updateSticker(id, { position_x: x, position_y: y, z_index: nextZIndex });
-      } catch {}
+      } catch { }
     })();
   }, [cards]);
 
@@ -359,7 +359,7 @@ export function BoardCanvas({
     void (async () => {
       try {
         await updateSticker(id, { rotation });
-      } catch {}
+      } catch { }
     })();
   }, []);
 
@@ -368,7 +368,7 @@ export function BoardCanvas({
     void (async () => {
       try {
         await updateSticker(id, { scale });
-      } catch {}
+      } catch { }
     })();
   }, []);
 
@@ -439,7 +439,7 @@ export function BoardCanvas({
       <DragOverlay dropAnimation={null}>
         {activeCard && (
           <div style={{ width: activeCard.width || 220, opacity: 0.8, pointerEvents: 'none' }}>
-            <CardCompactView card={activeCard} isEditMode={true} onToggleCompleted={() => {}} onToggleStarred={() => {}} />
+            <CardCompactView card={activeCard} isEditMode={true} onToggleCompleted={() => { }} onToggleStarred={() => { }} />
           </div>
         )}
       </DragOverlay>

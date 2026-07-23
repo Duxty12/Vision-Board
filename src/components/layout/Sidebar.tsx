@@ -19,10 +19,10 @@ import { UserButton } from '@clerk/nextjs';
 
 // ─── Nav items ────────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { href: '/dashboard',   label: 'Dashboard',     icon: LayoutDashboard },
-  { href: '/goals',       label: 'Goals',          icon: Target },
-  { href: '/tasks',       label: 'Tasks',          icon: CheckSquare },
-  { href: '/collections', label: 'Vision Boards',  icon: LayoutGrid },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/goals', label: 'Goals', icon: Target },
+  { href: '/tasks', label: 'Tasks', icon: CheckSquare },
+  { href: '/collections', label: 'Vision Boards', icon: LayoutGrid },
 ] as const;
 
 const BOTTOM_NAV = [
@@ -145,9 +145,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                   )}
                   <Icon
                     size={18}
-                    className={`shrink-0 transition-transform duration-200 group-hover:scale-110 ${
-                      active ? 'text-amber-400' : 'text-stone-400 group-hover:text-stone-200'
-                    }`}
+                    className={`shrink-0 transition-transform duration-200 group-hover:scale-110 ${active ? 'text-amber-400' : 'text-stone-400 group-hover:text-stone-200'
+                      }`}
                   />
                   {!isCollapsed && (
                     <span className="text-sm whitespace-nowrap overflow-hidden text-ellipsis flex-1 font-sans">
@@ -215,7 +214,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         >
           {collapsed
             ? <ChevronRight size={13} className="text-amber-400" />
-            : <ChevronLeft  size={13} className="text-amber-400" />
+            : <ChevronLeft size={13} className="text-amber-400" />
           }
         </button>
       </aside>
