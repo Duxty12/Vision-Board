@@ -34,10 +34,16 @@ export function ThemeSwitcher({ boardId, currentTheme, onThemeChange }: ThemeSwi
     if (theme === activeTheme) { setOpen(false); return; }
     setActiveTheme(theme);
     setOpen(false);
-    onThemeChange?.(theme);
+    
+    // Save locally for instant persistence across re-renders
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`stillboard_theme_${boardId}`, theme);
+    }
+
     startTransition(async () => {
       try {
         await updateBoard(boardId, { theme });
+        onThemeChange?.(theme);
       } catch (err) {
         console.error('Failed to update theme:', err);
         setActiveTheme(currentTheme);
@@ -52,7 +58,7 @@ export function ThemeSwitcher({ boardId, currentTheme, onThemeChange }: ThemeSwi
         id="theme-switcher-btn"
         onClick={() => setOpen((v) => !v)}
         title="Change board theme"
-        className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/90 dark:bg-[#1a1c23]/90 hover:bg-white dark:hover:bg-[#1a1c23] border border-stone-200/90 dark:border-white/10 text-stone-800 dark:text-stone-100 transition-all duration-200 text-xs font-sans font-semibold shadow-xs hover:shadow-md hover:scale-102 cursor-pointer group"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/90 dark:bg-[#1a1c23]/90 hover:bg-white dark:hover:bg-[#1a1c23] border border-stone-200/90 dark:border-white/10 text-stone-800 dark:text-stone-100 transition-all duration-200 text-xs font-sans font-semibold shadow-xs hover:shadow-md hover:scale-102 cursor-pointer outline-none focus:outline-none focus:ring-0 select-none group"
       >
         <div
           className="w-3.5 h-3.5 rounded-full border border-stone-900/15 dark:border-white/20 shrink-0 shadow-xs transition-transform group-hover:scale-110"

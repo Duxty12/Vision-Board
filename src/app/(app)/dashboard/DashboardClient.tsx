@@ -97,8 +97,17 @@ export function DashboardClient({
   }, [initialCards]);
   React.useEffect(() => { setStickers(initialStickers); }, [initialStickers]);
   React.useEffect(() => { setStarredCards(initialStarredCards); }, [initialStarredCards]);
-  // ── Sync theme when switching to a different board ─────────────────────────
-  React.useEffect(() => { setCurrentTheme(board.theme); }, [board.id, board.theme]);
+  // ── Sync theme when switching boards or using persisted local theme ─────────
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`stillboard_theme_${board.id}`) as BoardTheme;
+      if (saved && ['cork', 'linen', 'white', 'dark'].includes(saved)) {
+        setCurrentTheme(saved);
+        return;
+      }
+    }
+    setCurrentTheme(board.theme);
+  }, [board.id, board.theme]);
 
   // Load board size preference from localStorage
   useEffect(() => {
@@ -331,6 +340,9 @@ export function DashboardClient({
 
   const handleThemeChange = (theme: BoardTheme) => {
     setCurrentTheme(theme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`stillboard_theme_${board.id}`, theme);
+    }
     router.refresh();
   };
 
