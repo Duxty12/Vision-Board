@@ -145,12 +145,13 @@ export async function uploadMediaFile(formData: FormData, cardId: string): Promi
       } as any);
 
     if (uploadError) {
-      throw uploadError;
+      console.error('[uploadMediaFile] Supabase Storage upload error:', uploadError);
+      throw new Error(`Storage upload failed: ${uploadError.message}. Ensure the 'board-media' bucket exists in Supabase Storage.`);
     }
 
     return { path: data.path };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in uploadMediaFile server action:', error);
-    throw error;
+    throw new Error(error?.message || 'Failed to upload file.');
   }
 }
